@@ -195,6 +195,27 @@ export const GoalOverviewSection: React.FC<GoalOverviewSectionProps> = ({
     return parents;
   }, [allOverviewBars]);
 
+  const frequencyGoalCounts = useMemo(() => {
+    let daily = 0;
+    let weekly = 0;
+    let monthly = 0;
+    goals.forEach((g) => {
+      if (g.frequency === 'daily') daily++;
+      else if (g.frequency === 'weekly') weekly++;
+      else if (g.frequency === 'monthly') monthly++;
+    });
+    return { daily, weekly, monthly };
+  }, [goals]);
+
+  // Auto-switch frequency if current selection has 0 goals
+  React.useEffect(() => {
+    if (frequencyGoalCounts[frequency] === 0) {
+      if (frequencyGoalCounts.daily > 0) setFrequency('daily');
+      else if (frequencyGoalCounts.weekly > 0) setFrequency('weekly');
+      else if (frequencyGoalCounts.monthly > 0) setFrequency('monthly');
+    }
+  }, [frequency, frequencyGoalCounts]);
+
   return (
     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-6">
       {/* Header & Frequency Pills */}
@@ -210,10 +231,13 @@ export const GoalOverviewSection: React.FC<GoalOverviewSectionProps> = ({
         <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl text-xs font-bold shrink-0 border border-slate-200 dark:border-slate-800">
           <button
             type="button"
+            disabled={frequencyGoalCounts.daily === 0}
             onClick={() => setFrequency('daily')}
             className={`px-3.5 py-1.5 rounded-lg transition-all tap-target ${
               frequency === 'daily'
                 ? 'bg-sky-600 text-white shadow-sm font-bold'
+                : frequencyGoalCounts.daily === 0
+                ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-50'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
@@ -221,10 +245,13 @@ export const GoalOverviewSection: React.FC<GoalOverviewSectionProps> = ({
           </button>
           <button
             type="button"
+            disabled={frequencyGoalCounts.weekly === 0}
             onClick={() => setFrequency('weekly')}
             className={`px-3.5 py-1.5 rounded-lg transition-all tap-target ${
               frequency === 'weekly'
                 ? 'bg-sky-600 text-white shadow-sm font-bold'
+                : frequencyGoalCounts.weekly === 0
+                ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-50'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
@@ -232,10 +259,13 @@ export const GoalOverviewSection: React.FC<GoalOverviewSectionProps> = ({
           </button>
           <button
             type="button"
+            disabled={frequencyGoalCounts.monthly === 0}
             onClick={() => setFrequency('monthly')}
             className={`px-3.5 py-1.5 rounded-lg transition-all tap-target ${
               frequency === 'monthly'
                 ? 'bg-sky-600 text-white shadow-sm font-bold'
+                : frequencyGoalCounts.monthly === 0
+                ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-50'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
