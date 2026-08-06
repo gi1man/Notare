@@ -74,31 +74,31 @@ export const DashboardView: React.FC = () => {
 
       {/* Metric Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-2">
-          <div className="text-xs font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wider">
+        <div className="card-parchment p-6 rounded-2xl shadow-sm space-y-2">
+          <div className="text-xs font-bold text-notare-ink dark:text-notare-sage uppercase tracking-wider">
             Total Logged
           </div>
-          <div className="text-3xl font-extrabold text-slate-900 dark:text-white">
+          <div className="text-3xl font-extrabold text-notare-charcoal dark:text-notare-parchment">
             {totalLogs}
           </div>
           <div className="text-xs text-slate-500">Activities recorded</div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-2">
-          <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+        <div className="card-parchment p-6 rounded-2xl shadow-sm space-y-2">
+          <div className="text-xs font-bold text-notare-sage dark:text-notare-sage uppercase tracking-wider">
             Past 7 Days
           </div>
-          <div className="text-3xl font-extrabold text-slate-900 dark:text-white">
+          <div className="text-3xl font-extrabold text-notare-charcoal dark:text-notare-parchment">
             {logsThisWeek}
           </div>
           <div className="text-xs text-slate-500">Entries this week</div>
         </div>
 
-        <div className="col-span-2 sm:col-span-1 bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-2">
-          <div className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1">
-            <Flame className="w-4 h-4 fill-amber-500" /> Active Goals
+        <div className="col-span-2 sm:col-span-1 card-parchment p-6 rounded-2xl shadow-sm space-y-2">
+          <div className="text-xs font-bold text-notare-terracotta uppercase tracking-wider flex items-center gap-1">
+            <Flame className="w-4 h-4 fill-notare-terracotta text-notare-terracotta" /> Active Goals
           </div>
-          <div className="text-3xl font-extrabold text-slate-900 dark:text-white">
+          <div className="text-3xl font-extrabold text-notare-charcoal dark:text-notare-parchment">
             {goals?.length || 0}
           </div>
           <div className="text-xs text-slate-500">Habits with goals set</div>
@@ -127,7 +127,7 @@ export const DashboardView: React.FC = () => {
       />
 
       {/* Activity Streaks & Summaries (Past 7 Days) */}
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-5">
+      <div className="card-parchment p-6 rounded-2xl shadow-sm space-y-5">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">

@@ -6,11 +6,25 @@ export default {
     extend: {
       colors: {
         brand: {
-          50: '#f0f7ff',
-          100: '#e0effe',
-          500: '#0284c7',
-          600: '#0369a1',
-          700: '#075985',
+          50: '#f5f1e8',
+          100: '#8fa99b',
+          500: '#c75b39',
+          600: '#0f4c45',
+          700: '#2b2b29',
+        },
+        notare: {
+          ink: '#0F4C45',
+          'ink-hover': '#135c54',
+          'ink-light': '#e6f0ee',
+          terracotta: '#C75B39',
+          'terracotta-hover': '#b54e2d',
+          'terracotta-light': '#f9eeea',
+          sage: '#8FA99B',
+          'sage-light': '#eef3f0',
+          parchment: '#F5F1E8',
+          'parchment-dark': '#eae4d8',
+          charcoal: '#2B2B29',
+          'charcoal-light': '#3a3a37',
         },
       },
       fontSize: {

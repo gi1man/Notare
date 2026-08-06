@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,7 +7,18 @@
 @layer base {
   html {
     font-size: 16px;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  body, #root {
+    background-color: #F5F1E8 !important;
+    color: #2B2B29 !important;
+  }
+
+  .dark body, .dark #root {
+    background-color: #0F172A !important;
+    color: #F8FAFC !important;
   }
 
   /* Font Scale Overrides */
@@ -27,6 +40,66 @@
   body.high-a11y select {
     border-width: 2px !important;
   }
+}
+
+/* Explicit Notare Brand Class Utilities */
+.bg-notare-parchment {
+  background-color: #F5F1E8 !important;
+}
+
+.bg-notare-ink {
+  background-color: #0F4C45 !important;
+}
+
+.text-notare-ink {
+  color: #0F4C45 !important;
+}
+
+.border-notare-ink {
+  border-color: #0F4C45 !important;
+}
+
+.bg-notare-terracotta {
+  background-color: #C75B39 !important;
+}
+
+.text-notare-terracotta {
+  color: #C75B39 !important;
+}
+
+.border-notare-terracotta {
+  border-color: #C75B39 !important;
+}
+
+.bg-notare-sage {
+  background-color: #8FA99B !important;
+}
+
+.text-notare-sage {
+  color: #8FA99B !important;
+}
+
+.bg-notare-charcoal {
+  background-color: #2B2B29 !important;
+}
+
+.text-notare-charcoal {
+  color: #2B2B29 !important;
+}
+
+/* Warm Parchment Card */
+.card-parchment {
+  background-color: #FAF7F2;
+  border-color: #E2DAC8;
+}
+
+.dark .card-parchment {
+  background-color: #242422;
+  border-color: #3A3A37;
+}
+
+.font-serif-logo {
+  font-family: 'DM Serif Display', Georgia, serif;
 }
 
 /* Custom Utilities for Touch & Tap Targets */

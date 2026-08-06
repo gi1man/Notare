@@ -5,7 +5,7 @@ import { useApp } from '../../context/AppContext';
 import { Category } from '../../types';
 import { IconRenderer } from '../common/IconRenderer';
 import { IconPicker } from '../common/IconPicker';
-import { Pin, Plus, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 
 export const CategoryPicker: React.FC = () => {
   const { setSelectedCategory, setEntryStep, isDebounced, triggerDebounce } = useApp();
@@ -56,46 +56,37 @@ export const CategoryPicker: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-      {/* Step Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Select Category
-          </h2>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-            Step 1 of 3 — Tap any activity category
-          </p>
-        </div>
+      {/* 🏷️ Header: Title + Top Action Button */}
+      <div className="flex items-center justify-between border-b border-notare-parchment-dark dark:border-slate-800 pb-4">
+        <h1 className="text-3xl font-serif-logo font-bold text-[#0F4C45] dark:text-white leading-tight">
+          Log activity
+        </h1>
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2.5 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 text-sky-700 dark:text-sky-300 font-bold text-sm rounded-xl transition-all tap-target flex items-center gap-1.5"
+          className="px-4 py-2.5 bg-[#0F4C45] text-[#F5F1E8] hover:bg-[#135c54] dark:bg-sky-900/60 dark:text-sky-300 dark:hover:bg-sky-900 font-bold text-sm rounded-xl transition-all tap-target flex items-center gap-1.5 shadow-sm shrink-0"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 text-[#8FA99B] dark:text-sky-300" />
           Add Category
         </button>
       </div>
 
-      {/* Grid of Categories */}
+      {/* 🎴 Responsive Floating Category Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {categories?.map((cat) => (
           <button
             key={cat.id}
             onClick={() => handleSelectCategory(cat)}
             disabled={isDebounced}
-            className="group relative flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-sky-950/40 active:bg-sky-100 border-2 border-slate-200 dark:border-slate-700 hover:border-sky-500 rounded-2xl transition-all shadow-sm hover:shadow-md tap-target no-select text-center"
+            className="group flex flex-col items-center justify-center p-6 rounded-3xl bg-[#8FA99B] text-[#0F4C45] hover:bg-[#7d998b] dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700/80 dark:border-2 dark:border-slate-700 dark:hover:border-sky-500 transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:scale-95 tap-target no-select text-center"
           >
-            {cat.pinned && (
-              <span className="absolute top-3 right-3 text-amber-500" title="Pinned Category">
-                <Pin className="w-4 h-4 fill-amber-500" />
-              </span>
-            )}
-
-            <div className="p-3.5 rounded-2xl bg-sky-100 dark:bg-sky-900/60 text-sky-700 dark:text-sky-300 group-hover:scale-110 transition-transform mb-3">
-              <IconRenderer name={cat.icon} className="w-8 h-8" />
+            {/* Icon container */}
+            <div className="mb-3 p-3.5 rounded-2xl bg-[#0F4C45] text-[#F5F1E8] dark:bg-sky-900/60 dark:text-sky-300 group-hover:scale-110 transition-transform">
+              <IconRenderer name={cat.icon} className="w-8 h-8 stroke-[2.2]" />
             </div>
 
-            <span className="font-bold text-lg text-slate-900 dark:text-white leading-tight">
+            {/* Category Name */}
+            <span className="font-bold text-lg tracking-tight leading-tight text-[#0F4C45] dark:text-white">
               {cat.name}
             </span>
           </button>
@@ -105,9 +96,9 @@ export const CategoryPicker: React.FC = () => {
       {/* Add Category Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-700 space-y-5">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+          <div className="bg-[#F5F1E8] dark:bg-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-300 dark:border-slate-700 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-300 dark:border-slate-700 pb-3">
+              <h3 className="text-xl font-bold font-serif-logo text-[#0F4C45] dark:text-white">
                 New Category
               </h3>
               <button
@@ -147,15 +138,15 @@ export const CategoryPicker: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl"
+                  className="flex-1 py-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl shadow-md"
+                  className="flex-1 py-3 bg-[#0F4C45] dark:bg-sky-600 text-white hover:bg-[#135c54] dark:hover:bg-sky-700 font-bold rounded-xl shadow-md"
                 >
-                  Create
+                  Create Category
                 </button>
               </div>
             </form>

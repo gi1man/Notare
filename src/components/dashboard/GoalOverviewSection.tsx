@@ -21,49 +21,49 @@ interface SubcategoryOverviewData {
   entries: Entry[];
 }
 
-// Harmonious Theme Palette per Parent Category
+// Harmonious Theme Palette per Parent Category using Official Brand Colors
 const CATEGORY_COLORS: Record<string, { bar: string; hover: string; dot: string; bg: string; text: string }> = {
   'Fitness & Health': {
-    bar: 'bg-emerald-500',
-    hover: 'hover:bg-emerald-600',
-    dot: 'bg-emerald-500',
-    bg: 'bg-emerald-50 dark:bg-emerald-950/60',
-    text: 'text-emerald-800 dark:text-emerald-300',
+    bar: 'bg-notare-ink',
+    hover: 'hover:bg-notare-ink-hover',
+    dot: 'bg-notare-ink',
+    bg: 'bg-notare-ink-light dark:bg-slate-900',
+    text: 'text-notare-ink dark:text-notare-sage',
   },
   Nutrition: {
-    bar: 'bg-teal-500',
-    hover: 'hover:bg-teal-600',
-    dot: 'bg-teal-500',
-    bg: 'bg-teal-50 dark:bg-teal-950/60',
-    text: 'text-teal-800 dark:text-teal-300',
+    bar: 'bg-notare-sage',
+    hover: 'hover:opacity-90',
+    dot: 'bg-notare-sage',
+    bg: 'bg-notare-sage-light dark:bg-slate-900',
+    text: 'text-slate-800 dark:text-notare-sage',
   },
   'Focused Activities': {
-    bar: 'bg-sky-500',
-    hover: 'hover:bg-sky-600',
-    dot: 'bg-sky-500',
-    bg: 'bg-sky-50 dark:bg-sky-950/60',
-    text: 'text-sky-800 dark:text-sky-300',
+    bar: 'bg-notare-terracotta',
+    hover: 'hover:bg-notare-terracotta-hover',
+    dot: 'bg-notare-terracotta',
+    bg: 'bg-notare-terracotta-light dark:bg-slate-900',
+    text: 'text-notare-terracotta dark:text-orange-300',
   },
   'Social & Life': {
-    bar: 'bg-indigo-500',
-    hover: 'hover:bg-indigo-600',
-    dot: 'bg-indigo-500',
+    bar: 'bg-indigo-600',
+    hover: 'hover:bg-indigo-700',
+    dot: 'bg-indigo-600',
     bg: 'bg-indigo-50 dark:bg-indigo-950/60',
     text: 'text-indigo-800 dark:text-indigo-300',
   },
   Creativity: {
-    bar: 'bg-violet-500',
-    hover: 'hover:bg-violet-600',
-    dot: 'bg-violet-500',
+    bar: 'bg-violet-600',
+    hover: 'hover:bg-violet-700',
+    dot: 'bg-violet-600',
     bg: 'bg-violet-50 dark:bg-violet-950/60',
     text: 'text-violet-800 dark:text-violet-300',
   },
   'Business & Work': {
-    bar: 'bg-amber-500',
-    hover: 'hover:bg-amber-600',
-    dot: 'bg-amber-500',
-    bg: 'bg-amber-50 dark:bg-amber-950/60',
-    text: 'text-amber-800 dark:text-amber-300',
+    bar: 'bg-notare-charcoal',
+    hover: 'hover:bg-notare-charcoal-light',
+    dot: 'bg-notare-charcoal',
+    bg: 'bg-slate-200 dark:bg-slate-900',
+    text: 'text-notare-charcoal dark:text-slate-300',
   },
   Diversions: {
     bar: 'bg-rose-500',
@@ -73,20 +73,20 @@ const CATEGORY_COLORS: Record<string, { bar: string; hover: string; dot: string;
     text: 'text-rose-800 dark:text-rose-300',
   },
   'Home Projects': {
-    bar: 'bg-orange-500',
-    hover: 'hover:bg-orange-600',
-    dot: 'bg-orange-500',
-    bg: 'bg-orange-50 dark:bg-orange-950/60',
-    text: 'text-orange-800 dark:text-orange-300',
+    bar: 'bg-amber-600',
+    hover: 'hover:bg-amber-700',
+    dot: 'bg-amber-600',
+    bg: 'bg-amber-50 dark:bg-amber-950/60',
+    text: 'text-amber-800 dark:text-amber-300',
   },
 };
 
 const DEFAULT_CATEGORY_COLOR = {
-  bar: 'bg-sky-500',
-  hover: 'hover:bg-sky-600',
-  dot: 'bg-sky-500',
-  bg: 'bg-sky-50 dark:bg-sky-950/60',
-  text: 'text-sky-800 dark:text-sky-300',
+  bar: 'bg-notare-ink',
+  hover: 'hover:bg-notare-ink-hover',
+  dot: 'bg-notare-ink',
+  bg: 'bg-notare-ink-light dark:bg-slate-900',
+  text: 'text-notare-ink dark:text-notare-sage',
 };
 
 export const GoalOverviewSection: React.FC<GoalOverviewSectionProps> = ({

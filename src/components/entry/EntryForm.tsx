@@ -1,96 +1,84 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import { db } from '../../db';
 import { Entry, DualNumberValue } from '../../types';
-import { IconRenderer } from '../common/IconRenderer';
-import { ArrowLeft, Mic, MicOff, Check, Star, Save, Calendar } from 'lucide-react';
+import { db } from '../../db';
+import { ChevronLeft, Mic } from 'lucide-react';
 
 export const EntryForm: React.FC = () => {
   const {
     selectedCategory,
     selectedSubcategory,
     setEntryStep,
-    triggerUndoToast,
-    resetToCategoryPicker,
     isDebounced,
     triggerDebounce,
+    triggerUndoToast,
     settings,
   } = useApp();
 
-  const datetimeRef = useRef<HTMLInputElement>(null);
-
-  // Helper to format local Date into YYYY-MM-DDTHH:mm for datetime-local input
-  const toLocalISOString = (d: Date) => {
-    const pad = (n: number) => (n < 10 ? '0' + n : n);
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  };
-
-  // Pre-filled with current datetime by default
-  const [customDatetime, setCustomDatetime] = useState<string>(toLocalISOString(new Date()));
-
-  // Input states depending on schema
-  const [numValue, setNumValue] = useState<string>('');
+  const [numValue, setNumValue] = useState<string>('30');
   const [boolValue, setBoolValue] = useState<boolean>(true);
   const [ratingValue, setRatingValue] = useState<number>(5);
-  const [dualValue1, setDualValue1] = useState<string>('');
-  const [dualValue2, setDualValue2] = useState<string>('');
+  const [dualValue1, setDualValue1] = useState<string>('120');
+  const [dualValue2, setDualValue2] = useState<string>('80');
   const [noteText, setNoteText] = useState<string>('');
 
-  // Voice note state (30-second limit)
-  const [isRecording, setIsRecording] = useState<boolean>(false);
-  const [recordSecondsLeft, setRecordSecondsLeft] = useState<number>(30);
-  const [transcriptText, setTranscriptText] = useState<string>('');
-  const [showMicHelp, setShowMicHelp] = useState<boolean>(false);
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordSecondsLeft, setRecordSecondsLeft] = useState(30);
+  const [transcriptText, setTranscriptText] = useState('');
+  const [showMicHelp, setShowMicHelp] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
-  // Set default initial value based on schema type
+  // Set default initial numValue to goal target if set
   useEffect(() => {
-    if (!selectedSubcategory?.value_schema) return;
-    const type = selectedSubcategory.value_schema.type;
-    if (type === 'duration') setNumValue('30');
-    if (type === 'count') setNumValue('1');
-    if (type === 'decimal') setNumValue('150.0');
-    if (type === 'dual_number') {
-      setDualValue1('120');
-      setDualValue2('80');
-    }
+    if (!selectedSubcategory) return;
+    const fetchGoalTarget = async () => {
+      const existingGoal = await db.goals
+        .where('subcategory_id')
+        .equals(selectedSubcategory.id)
+        .first();
+      if (existingGoal && existingGoal.target_value) {
+        setNumValue(String(existingGoal.target_value));
+      }
+    };
+    fetchGoalTarget();
   }, [selectedSubcategory]);
 
-  // Voice Recording 30-Second Countdown Timer
+  // Voice Recording Timer (30-second cutoff)
   useEffect(() => {
-    let timer: ReturnType<typeof setInterval> | null = null;
+    let timer: NodeJS.Timeout;
     if (isRecording && recordSecondsLeft > 0) {
       timer = setInterval(() => {
         setRecordSecondsLeft((prev) => prev - 1);
       }, 1000);
     } else if (isRecording && recordSecondsLeft === 0) {
-      // 30-Second Limit reached! Automatically stop recording
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
       setIsRecording(false);
-      setTranscriptText((prev) => prev + (prev ? ' ' : '') + '[Voice note recorded]');
     }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
+    return () => clearInterval(timer);
   }, [isRecording, recordSecondsLeft]);
 
-  // Web Speech API Voice Dictation Simulation / Trigger
-  const handleToggleRecord = () => {
-    if (!isRecording) {
-      // Feature detect Web Speech API
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-      if (!SpeechRecognition) {
-        if (!settings.mic_help_do_not_show) {
-          setShowMicHelp(true);
-        }
-        return;
+  // Web Speech API Recording Trigger
+  const handleToggleVoiceRecord = () => {
+    if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+      if (!settings.mic_help_do_not_show) {
+        setShowMicHelp(true);
       }
+      return;
+    }
 
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!isRecording) {
       try {
         const recognition = new SpeechRecognition();
-        recognition.lang = settings.voice_language || 'en-US';
-        recognition.interimResults = true;
+        recognitionRef.current = recognition;
         recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = settings.voice_language || 'en-US';
 
         recognition.onresult = (event: any) => {
           let currentTranscript = '';
@@ -102,9 +90,6 @@ export const EntryForm: React.FC = () => {
 
         recognition.onerror = () => {
           setIsRecording(false);
-          if (!settings.mic_help_do_not_show) {
-            setShowMicHelp(true);
-          }
         };
 
         recognition.onend = () => {
@@ -122,6 +107,9 @@ export const EntryForm: React.FC = () => {
       }
     } else {
       setIsRecording(false);
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
     }
   };
 
@@ -130,10 +118,8 @@ export const EntryForm: React.FC = () => {
     if (!selectedSubcategory || isDebounced) return;
     triggerDebounce(1500);
 
-    // Calculate occurred_at date
-    const occurredAt = customDatetime ? new Date(customDatetime) : new Date();
+    const occurredAt = new Date();
 
-    // Determine value payload
     let parsedValue: any = null;
     const schema = selectedSubcategory.value_schema;
     if (schema) {
@@ -160,265 +146,185 @@ export const EntryForm: React.FC = () => {
       note_text: noteText.trim() || undefined,
       transcript: transcriptText.trim() || undefined,
       transcript_status: transcriptText.trim() ? 'done' : 'none',
-      updated_at: new Date().toISOString(),
+      updated_at: occurredAt.toISOString(),
     };
 
-    // Save to IndexedDB
     await db.entries.add(newEntry);
 
-    // Trigger Undo Toast
     triggerUndoToast(
       newEntry,
-      selectedCategory?.name || 'Activity',
+      selectedCategory?.name || 'Category',
       selectedSubcategory.name
     );
 
-    // Reset flow back to Category Picker
-    resetToCategoryPicker();
+    setEntryStep('category_picker');
   };
 
   if (!selectedSubcategory || !selectedCategory) return null;
   const schema = selectedSubcategory.value_schema;
+  const recordedSeconds = 30 - recordSecondsLeft;
+  const formattedRecordTime = `0:${recordedSeconds < 10 ? '0' : ''}${recordedSeconds}`;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-      {/* Header & Back Button */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => setEntryStep('subcategory_picker')}
-          className="inline-flex items-center gap-2 text-sky-600 dark:text-sky-400 font-bold text-base hover:underline tap-target"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          Back to {selectedCategory.name}
-        </button>
+    <div className="max-w-md mx-auto px-4 py-6 space-y-6">
+      {/* ‹ Back Navigation */}
+      <button
+        onClick={() => setEntryStep('subcategory_picker')}
+        className="inline-flex items-center gap-1 text-2xl font-bold font-serif-logo text-notare-ink dark:text-notare-parchment hover:opacity-80 transition-opacity tap-target"
+      >
+        <ChevronLeft className="w-7 h-7 text-notare-ink dark:text-notare-parchment stroke-[2.5]" />
+        <span>{selectedCategory.name}</span>
+      </button>
+
+      {/* 📍 Breadcrumb & Date Header */}
+      <div className="space-y-1">
+        <div className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+          {selectedCategory.name} • {selectedSubcategory.name}
+        </div>
+        <h2 className="text-2xl font-bold text-notare-charcoal dark:text-notare-parchment">
+          Today, {new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase()}
+        </h2>
       </div>
 
-      {/* Item Name & Timestamp Tile Card */}
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        {/* Left Side: Category Breadcrumb & Item Name */}
-        <div className="space-y-1">
-          <div className="text-xs font-bold tracking-wider text-sky-600 dark:text-sky-400 uppercase flex items-center gap-1.5">
-            <IconRenderer name={selectedCategory.icon} className="w-4 h-4" />
-            {selectedCategory.name}
+      <form onSubmit={handleSave} className="space-y-6 pt-2">
+        {/* 🎙️ Central Voice Microphone Recording Section */}
+        <div className="flex flex-col items-center justify-center space-y-4 text-center">
+          {/* Ink Green Circular Mic Button */}
+          <button
+            type="button"
+            onClick={handleToggleVoiceRecord}
+            className={`w-28 h-28 rounded-full flex items-center justify-center transition-all shadow-lg tap-target no-select ${
+              isRecording
+                ? 'bg-[#0F4C45] dark:bg-sky-500 text-white scale-105 animate-pulse'
+                : 'bg-[#0F4C45] dark:bg-sky-600 text-white hover:bg-[#135c54] dark:hover:bg-sky-700'
+            }`}
+            title={isRecording ? 'Tap to stop recording' : 'Tap to record voice note'}
+          >
+            <Mic className="w-12 h-12 stroke-[2.2]" />
+          </button>
+
+          {/* Recording Timer & Audio Waveform Visualizer */}
+          <div className="space-y-2">
+            <div className="text-base font-bold text-[#0F4C45] dark:text-[#F5F1E8]">
+              {isRecording ? `Recording • ${formattedRecordTime}` : 'Tap mic to record voice note'}
+            </div>
+
+            {/* Ink Green Audio Waveform Visualizer Lines */}
+            {isRecording && (
+              <div className="flex items-center justify-center gap-1 text-[#0F4C45] dark:text-[#8FA99B] text-lg font-bold tracking-widest animate-pulse">
+                <span>|</span>
+                <span>|</span>
+                <span>|</span>
+                <span>|</span>
+                <span>|</span>
+                <span>|</span>
+                <span>|</span>
+                <span>|</span>
+                <span>|</span>
+              </div>
+            )}
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
-            <IconRenderer name={selectedSubcategory.icon || selectedCategory.icon} className="w-8 h-8 text-sky-600 dark:text-sky-400" />
-            {selectedSubcategory.name}
-          </h2>
+
+          {/* Transcript Preview */}
+          {transcriptText && (
+            <div className="w-full p-3 rounded-2xl bg-notare-parchment-dark dark:bg-slate-800 text-xs text-notare-charcoal dark:text-slate-200 italic border border-slate-300 dark:border-slate-700">
+              "{transcriptText}"
+            </div>
+          )}
         </div>
 
-        {/* Right Side: Timestamp Label & Datetime Text Box */}
-        <div className="flex flex-col sm:items-end">
-          <label htmlFor="entry-timestamp" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-            Timestamp
-          </label>
-          <div className="relative flex items-center w-full sm:w-auto">
-            <input
-              ref={datetimeRef}
-              id="entry-timestamp"
-              type="datetime-local"
-              value={customDatetime}
-              onChange={(e) => setCustomDatetime(e.target.value)}
-              className="w-full sm:w-auto py-2 pl-3 pr-9 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-bold shadow-sm focus:ring-2 focus:ring-sky-500"
-            />
-            <button
-              type="button"
-              onClick={() => datetimeRef.current?.showPicker?.() || datetimeRef.current?.focus()}
-              className="absolute right-2 text-sky-600 dark:text-sky-400 hover:text-sky-700 p-1"
-              title="Open Date & Time Picker"
-            >
-              <Calendar className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-      <form onSubmit={handleSave} className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-6">
-        
-        {/* Dynamic Value Input */}
+        {/* Optional Schema Value Input */}
         {schema && (
-          <div className="space-y-3">
-            <label className="block text-base font-bold text-slate-800 dark:text-slate-200">
-              Recorded Value {schema.unit ? `(${schema.unit})` : ''}
+          <div className="p-4 rounded-2xl bg-notare-parchment-dark/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+              Recorded {schema.type} {schema.unit ? `(${schema.unit})` : ''}
             </label>
-
-            {/* DURATION / COUNT / DECIMAL */}
             {(schema.type === 'duration' || schema.type === 'count' || schema.type === 'decimal') && (
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  step={schema.type === 'decimal' ? '0.1' : '1'}
-                  required
-                  value={numValue}
-                  onChange={(e) => setNumValue(e.target.value)}
-                  className="w-full text-2xl font-bold p-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500"
-                />
-                {schema.unit && (
-                  <span className="text-lg font-bold text-slate-600 dark:text-slate-400 shrink-0">
-                    {schema.unit}
-                  </span>
-                )}
-              </div>
+              <input
+                type="number"
+                step={schema.type === 'decimal' ? '0.1' : '1'}
+                value={numValue}
+                onChange={(e) => setNumValue(e.target.value)}
+                className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 font-bold text-lg text-notare-charcoal dark:text-white"
+              />
             )}
-
-            {/* BOOLEAN */}
             {schema.type === 'boolean' && (
-              <div className="flex gap-4">
-                <button
-                  type="button"
-                  onClick={() => setBoolValue(true)}
-                  className={`flex-1 py-4 px-6 rounded-xl font-bold text-lg border-2 transition-all tap-target flex items-center justify-center gap-2 ${
-                    boolValue
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-500'
-                  }`}
-                >
-                  <Check className="w-6 h-6" /> Yes / Completed
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBoolValue(false)}
-                  className={`flex-1 py-4 px-6 rounded-xl font-bold text-lg border-2 transition-all tap-target ${
-                    !boolValue
-                      ? 'border-rose-600 bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-500'
-                  }`}
-                >
-                  No / Skipped
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setBoolValue(!boolValue)}
+                className={`w-full py-3 font-bold text-sm rounded-xl border transition-all ${
+                  boolValue ? 'bg-notare-ink text-white' : 'bg-white text-slate-700'
+                }`}
+              >
+                {boolValue ? 'Completed ✓' : 'Not Completed'}
+              </button>
             )}
-
-            {/* RATING */}
             {schema.type === 'rating' && (
-              <div className="flex justify-between gap-2 pt-2">
+              <div className="flex justify-between gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
                     type="button"
                     onClick={() => setRatingValue(star)}
-                    className={`flex-1 py-4 rounded-xl border-2 font-bold text-lg flex items-center justify-center gap-1 transition-all tap-target ${
-                      ratingValue >= star
-                        ? 'border-amber-500 bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400'
-                        : 'border-slate-200 dark:border-slate-700 text-slate-400'
+                    className={`flex-1 py-2 rounded-xl font-bold ${
+                      ratingValue === star ? 'bg-notare-terracotta text-white' : 'bg-white text-slate-700'
                     }`}
                   >
-                    <Star className={`w-6 h-6 ${ratingValue >= star ? 'fill-amber-500' : ''}`} />
-                    {star}
+                    ★ {star}
                   </button>
                 ))}
               </div>
             )}
-
-            {/* DUAL NUMBER (Blood Pressure 120/80) */}
             {schema.type === 'dual_number' && (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
-                    {schema.dual_labels?.[0] || 'Systolic'}
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={dualValue1}
-                    onChange={(e) => setDualValue1(e.target.value)}
-                    className="w-full text-2xl font-bold p-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
-                    {schema.dual_labels?.[1] || 'Diastolic'}
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={dualValue2}
-                    onChange={(e) => setDualValue2(e.target.value)}
-                    className="w-full text-2xl font-bold p-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
-                  />
-                </div>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  placeholder="Systolic"
+                  value={dualValue1}
+                  onChange={(e) => setDualValue1(e.target.value)}
+                  className="w-1/2 p-3 rounded-xl border font-bold"
+                />
+                <input
+                  type="number"
+                  placeholder="Diastolic"
+                  value={dualValue2}
+                  onChange={(e) => setDualValue2(e.target.value)}
+                  className="w-1/2 p-3 rounded-xl border font-bold"
+                />
               </div>
             )}
           </div>
         )}
 
-        {/* Optional Voice Note Button with 30s Countdown Ring */}
-        <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between">
-            <label className="text-base font-bold text-slate-800 dark:text-slate-200">
-              Voice Note (Max 30s)
-            </label>
+        {/* Written Note */}
+        <input
+          type="text"
+          placeholder="Add written note (optional)..."
+          value={noteText}
+          onChange={(e) => setNoteText(e.target.value)}
+          className="w-full p-3.5 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-medium text-notare-charcoal dark:text-white"
+        />
 
-            {isRecording && (
-              <span className="text-xs font-extrabold text-rose-600 dark:text-rose-400 animate-pulse">
-                Recording: {recordSecondsLeft}s left
-              </span>
-            )}
-          </div>
-
+        {/* 🔘 Main Save Entry Button */}
+        <div className="space-y-2 text-center pt-2">
           <button
-            type="button"
-            onClick={handleToggleRecord}
-            className={`w-full p-4 rounded-xl font-bold text-base border-2 flex items-center justify-center gap-3 transition-all tap-target ${
-              isRecording
-                ? 'border-rose-600 bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 animate-pulse'
-                : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-sky-500'
-            }`}
+            type="submit"
+            disabled={isDebounced}
+            className="w-full py-4 px-6 bg-[#8FA99B] text-[#0F4C45] dark:bg-sky-600 dark:text-white dark:hover:bg-sky-700 font-extrabold text-2xl rounded-3xl shadow-sm transition-all tap-target flex items-center justify-center gap-2"
           >
-            {isRecording ? (
-              <>
-                <MicOff className="w-6 h-6 text-rose-600" /> Stop Recording ({recordSecondsLeft}s)
-              </>
-            ) : (
-              <>
-                <Mic className="w-6 h-6 text-sky-600 dark:text-sky-400" /> Tap to Dictate Voice Note
-              </>
-            )}
+            Save entry
           </button>
-
-          {/* Transcript Preview */}
-          {(transcriptText || isRecording) && (
-            <div className="p-4 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-200 space-y-1">
-              <div className="text-xs font-bold text-sky-600 dark:text-sky-400 uppercase">
-                Transcript Preview:
-              </div>
-              <p className="italic">
-                {transcriptText || 'Listening... speak clearly into your microphone.'}
-              </p>
-            </div>
-          )}
+          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+            Transcribes in background
+          </div>
         </div>
-
-        {/* Optional Note Text */}
-        <div className="space-y-2 pt-2">
-          <label className="block text-base font-bold text-slate-800 dark:text-slate-200">
-            Written Note (Optional)
-          </label>
-          <textarea
-            rows={3}
-            placeholder="Add details, how you felt, or notes..."
-            value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
-            className="w-full p-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 font-medium"
-          />
-        </div>
-
-        {/* Submit Save Button */}
-        <button
-          type="submit"
-          disabled={isDebounced}
-          className="w-full py-4 px-6 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xl rounded-xl shadow-lg hover:shadow-xl transition-all tap-target flex items-center justify-center gap-2"
-        >
-          <Save className="w-6 h-6" />
-          Save Entry ✓
-        </button>
       </form>
 
       {/* Mic Permission Help Sheet */}
       {showMicHelp && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+          <div className="bg-notare-parchment dark:bg-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl border border-notare-parchment-dark dark:border-slate-700 space-y-4">
+            <h3 className="text-xl font-bold font-serif-logo text-notare-ink dark:text-white">
               Microphone Permission
             </h3>
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -434,7 +340,7 @@ export const EntryForm: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowMicHelp(false)}
-              className="w-full py-3 bg-sky-600 text-white font-bold rounded-xl"
+              className="w-full py-3 bg-notare-ink text-notare-parchment font-bold rounded-xl"
             >
               Got it
             </button>
