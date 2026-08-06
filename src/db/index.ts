@@ -1,0 +1,89 @@
+import Dexie, { Table } from 'dexie';
+import { Category, Entry, Goal } from '../types';
+import { STARTER_CATEGORIES } from './starterData';
+import { generateDummyData } from './dummyDataGenerator';
+
+export class NotareDB extends Dexie {
+  categories!: Table<Category, string>;
+  entries!: Table<Entry, string>;
+  goals!: Table<Goal, string>;
+  meta!: Table<{ key: string; value: any }, string>;
+
+  constructor() {
+    super('NotareDB');
+
+    this.version(1).stores({
+      categories: 'id, parent_id, name, pinned, sort_order, updated_at, deleted_at',
+      entries: 'id, subcategory_id, occurred_at, transcript_status, updated_at, deleted_at',
+      goals: 'id, subcategory_id, direction, target_type, frequency, updated_at',
+      meta: 'key',
+    });
+  }
+
+  async initializeDefaults() {
+    // Ensure all latest starter categories (Fitness & Health, Sleep Time, etc.) exist and update names in IndexedDB
+    for (const cat of STARTER_CATEGORIES) {
+      const existing = await this.categories.get(cat.id);
+      if (!existing) {
+        await this.categories.put(cat);
+      } else if (existing.name !== cat.name || existing.parent_id !== cat.parent_id) {
+        await this.categories.update(cat.id, {
+          name: cat.name,
+          parent_id: cat.parent_id,
+          icon: cat.icon,
+        });
+      }
+    }
+
+    // Soft delete obsolete Health & Vitals category if present
+    const healthCat = await this.categories.get('cat-health');
+    if (healthCat && !healthCat.deleted_at) {
+      await this.categories.update('cat-health', { deleted_at: new Date().toISOString() });
+    }
+
+    const settings = await this.meta.get('settings');
+    if (!settings) {
+      await this.meta.put({
+        key: 'settings',
+        value: {
+          onboarding_completed: false,
+          telemetry_opt_in: false,
+          theme: 'light',
+          font_scale: 'normal',
+          high_a11y_profile: false,
+          undo_duration_ms: 5000,
+          voice_language: 'en-US',
+          mic_help_dismissed_count: 0,
+          mic_help_do_not_show: false,
+          ios_a2hs_dismissed: false,
+        },
+      });
+    }
+
+    // Auto-seed demo data if entries table is empty
+    const entryCount = await this.entries.count();
+    if (entryCount === 0) {
+      await generateDummyData();
+    }
+  }
+}
+
+export const db = new NotareDB();
+
+export const requestPersistentStorage = async (): Promise<boolean> => {
+  if (navigator.storage && navigator.storage.persist) {
+    const isPersisted = await navigator.storage.persisted();
+    if (!isPersisted) {
+      const granted = await navigator.storage.persist();
+      return granted;
+    }
+    return true;
+  }
+  return false;
+};
+
+// Auto-initialize default categories and meta on first load, and request persistent storage
+db.on('ready', async () => {
+  await db.initializeDefaults();
+  await requestPersistentStorage();
+});

@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-size: 16px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Font Scale Overrides */
+  html.font-scale-large {
+    font-size: 19px;
+  }
+
+  html.font-scale-extra-large {
+    font-size: 22px;
+  }
+
+  /* High Accessibility Preset Styles */
+  body.high-a11y {
+    font-weight: 500;
+  }
+
+  body.high-a11y button,
+  body.high-a11y input,
+  body.high-a11y select {
+    border-width: 2px !important;
+  }
+}
+
+/* Custom Utilities for Touch & Tap Targets */
+.tap-target {
+  min-width: 48px;
+  min-height: 48px;
+}
+
+/* Prevent accidental text selection on quick tap tiles */
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+}
