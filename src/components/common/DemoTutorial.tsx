@@ -28,8 +28,8 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     tab: 'entry',
     title: 'Step 1 of 6: Log Activity 🎯',
     description:
-      'Tap any category card on screen, then click the button for an activity to log an activity right now — try it!',
-    highlightText: 'Tap any category card on screen, then click the button for an activity to log an activity right now — try it!',
+      'Log activities in 2 quick taps. Tap any category card on screen, then tap an activity button to record your time or count.',
+    highlightText: 'Try it! Tap any category card on screen to log an activity.',
     icon: <Target className="w-6 h-6 text-emerald-400" />,
   },
   {
@@ -37,8 +37,8 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     tab: 'entry',
     title: 'Step 2 of 6: Create New Category 📂',
     description:
-      'Tap the "+ Add Category" button in the top right header to create a new category with your own icon — try it!',
-    highlightText: 'Tap the "+ Add Category" button in the top right header to create a new category with your own icon — try it!',
+      'Create custom categories for your health, hobbies, work, or daily routines with your own custom icons.',
+    highlightText: 'Try it! Tap the "+ Add Category" button in the top header.',
     icon: <FolderPlus className="w-6 h-6 text-amber-400" />,
   },
   {
@@ -46,8 +46,8 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     tab: 'entry',
     title: 'Step 3 of 6: Set & Create Goals 🎯',
     description:
-      'Tap any category card, then click the "+ Add Goal" button in the top header to set a new activity goal right now — try it!',
-    highlightText: 'Tap any category card, then click the "+ Add Goal" button in the top header to set a new activity goal right now — try it!',
+      'Set daily, weekly, or monthly target goals for any activity item to track your progress and build streaks.',
+    highlightText: 'Try it! Tap any category, then click "+ Add Goal" in the top header.',
     icon: <Compass className="w-6 h-6 text-sky-400" />,
   },
   {
