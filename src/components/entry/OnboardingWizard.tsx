@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { db } from '../../db';
 import { Goal, Category, GoalFrequency } from '../../types';
-import { STARTER_CATEGORIES } from '../../db/starterData';
 import { generateDummyData } from '../../db/dummyDataGenerator';
 import {
   syncCategoryToCloud,
   syncGoalToCloud,
   registerWithEmailPassword,
   signInWithEmailPassword,
+  getCurrentUser,
+  pushAllLocalDataToCloud,
 } from '../../db/firestoreSync';
 import { IconRenderer } from '../common/IconRenderer';
 import {
@@ -135,12 +136,16 @@ export const OnboardingWizard: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      await updateSettings({ is_demo_mode: true, onboarding_completed: true });
-      for (const cat of STARTER_CATEGORIES) {
-        await db.categories.put({ ...cat, deleted_at: null });
-      }
       await generateDummyData();
+      await updateSettings({ is_demo_mode: true, onboarding_completed: true });
+
+      const user = getCurrentUser();
+      if (user) {
+        await pushAllLocalDataToCloud(user.uid);
+      }
+
       setActiveTab('dashboard');
+      resetToCategoryPicker();
     } catch (err) {
       console.error('Failed to initialize demo mode:', err);
     } finally {
