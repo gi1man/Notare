@@ -57,18 +57,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const metaItem = useLiveQuery(() => db.meta.get('settings'));
   const settings: MetaSettings = overrideSettings || metaItem?.value || DEFAULT_SETTINGS;
   const goals = useLiveQuery(() => db.goals.toArray());
-  const userGoals = goals ? goals.filter((g) => !g.is_demo) : [];
 
-  // Automatically reset to First Startup Screen if 0 user-created goals exist and not in demo mode
+  // Automatically reset to First Startup Screen if 0 goals exist in DB
   useEffect(() => {
-    if (goals && userGoals.length === 0 && settings.onboarding_completed && !settings.is_demo_mode) {
+    if (goals && goals.length === 0 && settings.onboarding_completed) {
       const resetNoGoalsState = async () => {
         await clearDemoData();
         await updateSettings({ onboarding_completed: false, is_demo_mode: false });
       };
       resetNoGoalsState();
     }
-  }, [goals, userGoals.length, settings.onboarding_completed, settings.is_demo_mode]);
+  }, [goals, settings.onboarding_completed]);
 
   // Apply Theme & Font Scale HTML Body Classes
   useEffect(() => {

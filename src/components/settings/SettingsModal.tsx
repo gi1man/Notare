@@ -128,7 +128,7 @@ export const SettingsModal: React.FC = () => {
     await db.goals.clear();
     await db.meta.clear();
 
-    await db.initializeDefaults();
+    await updateSettings({ onboarding_completed: false, is_demo_mode: false });
     setShowClearConfirm(false);
     setActiveTab('entry');
   };
