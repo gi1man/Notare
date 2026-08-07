@@ -1,5 +1,10 @@
 import { auth, firestoreDb } from './firebaseConfig';
-import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import {
+  signInAnonymously,
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from 'firebase/auth';
 import { doc, setDoc, getDocs, collection, deleteDoc } from 'firebase/firestore';
 import { db } from './index';
 import { Category, Goal, Entry, MetaSettings } from '../types';
@@ -28,6 +33,51 @@ export const initFirebaseAuthAndSync = (onUserChanged?: (user: any) => void) => 
 };
 
 export const getCurrentUser = () => currentUser;
+
+// Register Cloud Account with Email & Custom Password
+export const registerWithEmailPassword = async (email: string, pass: string) => {
+  const credential = await createUserWithEmailAndPassword(auth, email, pass);
+  currentUser = credential.user;
+  // Push initial local data up to newly created account
+  await pushAllLocalDataToCloud(credential.user.uid);
+  return credential.user;
+};
+
+// Sign In on 2nd Phone with Email & Custom Password
+export const signInWithEmailPassword = async (email: string, pass: string) => {
+  const credential = await signInWithEmailAndPassword(auth, email, pass);
+  currentUser = credential.user;
+  // Pull all cloud data down onto second device
+  await pullCloudDataToLocal(credential.user.uid);
+  return credential.user;
+};
+
+// Push all local Dexie items to Cloud
+export const pushAllLocalDataToCloud = async (userId: string) => {
+  const categories = await db.categories.toArray();
+  for (const cat of categories) {
+    const docRef = doc(firestoreDb, 'users', userId, 'categories', cat.id);
+    await setDoc(docRef, JSON.parse(JSON.stringify(cat)), { merge: true });
+  }
+
+  const goals = await db.goals.toArray();
+  for (const goal of goals) {
+    const docRef = doc(firestoreDb, 'users', userId, 'goals', goal.id);
+    await setDoc(docRef, JSON.parse(JSON.stringify(goal)), { merge: true });
+  }
+
+  const entries = await db.entries.toArray();
+  for (const entry of entries) {
+    const docRef = doc(firestoreDb, 'users', userId, 'entries', entry.id);
+    await setDoc(docRef, JSON.parse(JSON.stringify(entry)), { merge: true });
+  }
+
+  const settingsItem = await db.meta.get('settings');
+  if (settingsItem?.value) {
+    const docRef = doc(firestoreDb, 'users', userId, 'settings', 'settings');
+    await setDoc(docRef, JSON.parse(JSON.stringify(settingsItem.value)), { merge: true });
+  }
+};
 
 // Sync Category to Firestore (/users/{userId}/categories/{catId})
 export const syncCategoryToCloud = async (category: Category) => {

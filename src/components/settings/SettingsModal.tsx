@@ -7,6 +7,7 @@ import { exportDataCSV, exportDataJSON } from '../../db/exportData';
 import { FontScaleOption, ThemeMode } from '../../types';
 import { CategoryManagerModal } from '../categories/CategoryManagerModal';
 import { DeviceMigrationModal } from './DeviceMigrationModal';
+import { registerWithEmailPassword, signInWithEmailPassword } from '../../db/firestoreSync';
 import {
   Settings,
   Eye,
@@ -24,6 +25,8 @@ import {
   Download,
   FileSpreadsheet,
   FileCode,
+  UserCheck,
+  Smartphone,
 } from 'lucide-react';
 
 export const SettingsModal: React.FC = () => {
@@ -31,6 +34,61 @@ export const SettingsModal: React.FC = () => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showCatManager, setShowCatManager] = useState(false);
   const [showMigrationModal, setShowMigrationModal] = useState(false);
+
+  // Email & Custom Password Sync State
+  const [syncEmail, setSyncEmail] = useState('');
+  const [syncPassword, setSyncPassword] = useState('');
+  const [authStatus, setAuthStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({
+    type: null,
+    message: '',
+  });
+  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
+
+  const handleRegisterAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!syncEmail.trim() || !syncPassword || isAuthSubmitting) return;
+    setIsAuthSubmitting(true);
+    setAuthStatus({ type: null, message: '' });
+
+    try {
+      await registerWithEmailPassword(syncEmail.trim(), syncPassword);
+      setAuthStatus({
+        type: 'success',
+        message: 'Cloud Sync account created! All local goals and logs are backed up to your account.',
+      });
+      setSyncPassword('');
+    } catch (err: any) {
+      setAuthStatus({
+        type: 'error',
+        message: err.message || 'Failed to create account. Password must be at least 6 characters.',
+      });
+    } finally {
+      setIsAuthSubmitting(false);
+    }
+  };
+
+  const handleSignInAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!syncEmail.trim() || !syncPassword || isAuthSubmitting) return;
+    setIsAuthSubmitting(true);
+    setAuthStatus({ type: null, message: '' });
+
+    try {
+      await signInWithEmailPassword(syncEmail.trim(), syncPassword);
+      setAuthStatus({
+        type: 'success',
+        message: 'Device linked successfully! Synced goals and activity history to this phone.',
+      });
+      setSyncPassword('');
+    } catch (err: any) {
+      setAuthStatus({
+        type: 'error',
+        message: err.message || 'Failed to sign in. Please verify your email and password.',
+      });
+    } finally {
+      setIsAuthSubmitting(false);
+    }
+  };
 
   const handleClearLocalData = async () => {
     await db.entries.clear();
@@ -52,24 +110,87 @@ export const SettingsModal: React.FC = () => {
           Settings & Preferences
         </h2>
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-          Customize display, accessibility, and voice options
+          Customize display, accessibility, and cloud sync options
         </p>
       </div>
 
-      {/* Cloud Sync & Backup Status Card */}
-      <div className="p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-2">
+      {/* 🔐 Cloud Sync & Multi-Device Password Link Card */}
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5 text-emerald-900 dark:text-emerald-300 font-extrabold text-base">
-            <Cloud className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <span>Automatic Cloud Backup & Sync</span>
+          <div className="flex items-center gap-2.5 text-slate-900 dark:text-white font-extrabold text-lg">
+            <Cloud className="w-6 h-6 text-sky-600 dark:text-sky-400" />
+            <span>Multi-Device Sync & Account Backup</span>
           </div>
-          <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-200 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-200 uppercase tracking-wider">
+          <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
             Active ✓
           </span>
         </div>
-        <p className="text-xs text-emerald-800 dark:text-emerald-300 leading-relaxed">
-          Your categories, goals, and logged activities are saved locally and backed up automatically to Firebase Cloud Firestore with 256-bit user-isolated security.
+
+        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+          Create an account or sign in with a custom password (letters, numbers, and special characters supported) to sync your goals and logs between 2 or more phones.
         </p>
+
+        <form className="space-y-3 pt-1">
+          <div className="space-y-1">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              Email / Username
+            </label>
+            <input
+              type="email"
+              placeholder="e.g. name@example.com"
+              value={syncEmail}
+              onChange={(e) => setSyncEmail(e.target.value)}
+              className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 font-semibold text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              Custom Password (Letters, Numbers, Special Chars)
+            </label>
+            <input
+              type="password"
+              placeholder="e.g. MyPass#2026!"
+              value={syncPassword}
+              onChange={(e) => setSyncPassword(e.target.value)}
+              className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 font-semibold text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500"
+            />
+          </div>
+
+          {authStatus.message && (
+            <div
+              className={`p-3 rounded-xl text-xs font-bold ${
+                authStatus.type === 'success'
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                  : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+              }`}
+            >
+              {authStatus.message}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <button
+              type="button"
+              onClick={handleRegisterAccount}
+              disabled={isAuthSubmitting || !syncEmail || !syncPassword}
+              className="py-3 px-4 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 tap-target"
+            >
+              <UserCheck className="w-4 h-4" />
+              Create Sync Account
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSignInAccount}
+              disabled={isAuthSubmitting || !syncEmail || !syncPassword}
+              className="py-3 px-4 bg-[#0F4C45] hover:bg-[#135c54] disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 tap-target"
+            >
+              <Smartphone className="w-4 h-4 text-[#8FA99B]" />
+              Link 2nd Device / Sign In
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* iOS Installation Prompt Card */}
