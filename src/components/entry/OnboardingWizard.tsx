@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { db } from '../../db';
 import { Goal, Category, GoalFrequency } from '../../types';
@@ -98,6 +98,13 @@ export const OnboardingWizard: React.FC = () => {
   const [targetUnit, setTargetUnit] = useState<string>('mins');
   const [frequency, setFrequency] = useState<GoalFrequency>('daily');
 
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (user && !user.isAnonymous && wizardStep === 'auth') {
+      setWizardStep('experience_choice');
+    }
+  }, [wizardStep]);
+
   // Step 1: Submit Account Creation or Login
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,22 +116,12 @@ export const OnboardingWizard: React.FC = () => {
       if (authTab === 'create') {
         // Create new account in Firebase
         await registerWithEmailPassword(accountEmail.trim(), accountPassword);
-        // Move to Screen 2 (Experience Choice)
-        setWizardStep('experience_choice');
       } else {
         // Sign in existing user in Firebase
         await signInWithEmailPassword(accountEmail.trim(), accountPassword);
-        const existingEntries = await db.entries.count();
-        if (existingEntries > 0) {
-          // Existing user already has data, finish onboarding and go straight home
-          await updateSettings({ onboarding_completed: true, is_demo_mode: false });
-          setActiveTab('entry');
-          resetToCategoryPicker();
-        } else {
-          // New/Empty existing user account, move to Screen 2 (Experience Choice)
-          setWizardStep('experience_choice');
-        }
       }
+      // Move to Screen 2 (Experience Choice)
+      setWizardStep('experience_choice');
     } catch (err: any) {
       console.error('Authentication error:', err);
       setAuthError(err.message || 'Authentication failed. Please check your credentials.');
