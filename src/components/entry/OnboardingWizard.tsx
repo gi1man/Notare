@@ -70,7 +70,10 @@ export const OnboardingWizard: React.FC = () => {
   const { updateSettings, setActiveTab, resetToCategoryPicker } = useApp();
 
   // Wizard Step Flow: 'auth' -> 'experience_choice' -> 'add_goals'
-  const [wizardStep, setWizardStep] = useState<'auth' | 'experience_choice' | 'add_goals'>('auth');
+  const [wizardStep, setWizardStep] = useState<'auth' | 'experience_choice' | 'add_goals'>(() => {
+    const user = getCurrentUser();
+    return user && !user.isAnonymous ? 'experience_choice' : 'auth';
+  });
   const [authTab, setAuthTab] = useState<'create' | 'login'>('create');
 
   const [showAddAnotherPrompt, setShowAddAnotherPrompt] = useState<boolean>(false);
@@ -446,6 +449,17 @@ export const OnboardingWizard: React.FC = () => {
                         Set up your custom categories, activity goals, and targets right now.
                       </div>
                     </div>
+                  </button>
+                </div>
+
+                {/* Switch Account Option */}
+                <div className="pt-2 border-t border-slate-300 dark:border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep('auth')}
+                    className="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+                  >
+                    Switch Account / Sign In with Another User →
                   </button>
                 </div>
               </div>

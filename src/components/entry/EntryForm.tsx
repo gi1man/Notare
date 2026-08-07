@@ -123,8 +123,9 @@ export const EntryForm: React.FC = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSubcategory || isDebounced) return;
-    triggerDebounce(1500);
+    if (!selectedSubcategory) return;
+    if (isDebounced) return;
+    triggerDebounce(500);
 
     const occurredAt = occurredAtStr ? new Date(occurredAtStr) : new Date();
 
@@ -157,8 +158,17 @@ export const EntryForm: React.FC = () => {
       updated_at: occurredAt.toISOString(),
     };
 
-    await db.entries.add(newEntry);
-    await syncEntryToCloud(newEntry);
+    try {
+      await db.entries.add(newEntry);
+    } catch (err) {
+      console.warn('Local Dexie entry save warning:', err);
+    }
+
+    try {
+      await syncEntryToCloud(newEntry);
+    } catch (err) {
+      console.warn('Cloud sync entry warning (saved locally):', err);
+    }
 
     triggerUndoToast(
       newEntry,
@@ -328,7 +338,7 @@ export const EntryForm: React.FC = () => {
           <button
             type="submit"
             disabled={isDebounced}
-            className="w-full py-4 px-6 bg-[#8FA99B] text-[#0F4C45] dark:bg-sky-600 dark:text-white dark:hover:bg-sky-700 font-extrabold text-2xl rounded-3xl shadow-sm transition-all tap-target flex items-center justify-center gap-2"
+            className="w-full py-4 px-6 bg-[#0F4C45] text-white hover:bg-[#135c54] dark:bg-sky-600 dark:text-white dark:hover:bg-sky-700 font-extrabold text-2xl rounded-3xl shadow-md active:scale-98 transition-all tap-target flex items-center justify-center gap-2"
           >
             Save entry
           </button>
