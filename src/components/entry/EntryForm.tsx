@@ -10,6 +10,7 @@ export const EntryForm: React.FC = () => {
     selectedCategory,
     selectedSubcategory,
     setEntryStep,
+    resetToCategoryPicker,
     isDebounced,
     triggerDebounce,
     triggerUndoToast,
@@ -176,7 +177,7 @@ export const EntryForm: React.FC = () => {
       selectedSubcategory.name
     );
 
-    setEntryStep('category_picker');
+    resetToCategoryPicker();
   };
 
   if (!selectedSubcategory || !selectedCategory) return null;
