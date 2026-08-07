@@ -11,6 +11,9 @@ import { InsightsView } from './components/insights/InsightsView';
 import { SettingsModal } from './components/settings/SettingsModal';
 import { UndoToast } from './components/entry/UndoToast';
 
+import { DemoBanner } from './components/common/DemoBanner';
+import { DemoTutorial } from './components/common/DemoTutorial';
+
 const AppContent: React.FC = () => {
   const { settings, activeTab, entryStep } = useApp();
 
@@ -25,6 +28,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F5F1E8] dark:bg-slate-900 text-slate-900 dark:text-slate-100 pb-20">
+      <DemoBanner />
       <Header />
 
       <main className="transition-all">
@@ -41,6 +45,9 @@ const AppContent: React.FC = () => {
         {activeTab === 'history' && <HistoryList />}
         {activeTab === 'settings' && <SettingsModal />}
       </main>
+
+      {/* Demo Mode Guided Callout Tutorial */}
+      <DemoTutorial />
 
       {/* Global Undo Toast */}
       <UndoToast />

@@ -18,6 +18,7 @@ export interface Category {
   sort_order: number;
   updated_at: string;
   deleted_at?: string | null;
+  is_demo?: boolean;
 }
 
 export type DualNumberValue = {
@@ -39,6 +40,7 @@ export interface Entry {
   transcript_status: TranscriptStatus;
   updated_at: string;
   deleted_at?: string | null;
+  is_demo?: boolean;
 }
 
 export type GoalDirection = 'at_least' | 'at_most';
@@ -53,6 +55,7 @@ export interface Goal {
   target_value: number;
   frequency: GoalFrequency;
   updated_at: string;
+  is_demo?: boolean;
 }
 
 export type ThemeMode = 'light' | 'dark' | 'auto';
@@ -70,6 +73,7 @@ export interface MetaSettings {
   mic_help_do_not_show: boolean;
   ios_a2hs_dismissed: boolean;
   last_cloud_backup_at?: string;
+  is_demo_mode?: boolean;
 }
 
 export interface UndoToastState {

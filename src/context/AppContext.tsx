@@ -3,6 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { Category, Entry, MetaSettings, UndoToastState } from '../types';
 
+import { clearDemoData } from '../db/dummyDataGenerator';
+
 export type ActiveTab = 'entry' | 'history' | 'dashboard' | 'insights' | 'settings';
 export type EntryStep = 'category_picker' | 'subcategory_picker' | 'entry_form';
 
@@ -48,10 +50,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedSubcategory, setSelectedSubcategory] = useState<Category | null>(null);
   const [undoToast, setUndoToast] = useState<UndoToastState | null>(null);
   const [isDebounced, setIsDebounced] = useState<boolean>(false);
+  const [overrideSettings, setOverrideSettings] = useState<MetaSettings | null>(null);
 
-  // Live Query from Dexie for Meta Settings
+  // Live Query from Dexie for Meta Settings & Goals
   const metaItem = useLiveQuery(() => db.meta.get('settings'));
-  const settings: MetaSettings = metaItem?.value || DEFAULT_SETTINGS;
+  const settings: MetaSettings = overrideSettings || metaItem?.value || DEFAULT_SETTINGS;
+  const goals = useLiveQuery(() => db.goals.toArray());
+  const userGoals = goals ? goals.filter((g) => !g.is_demo) : [];
+
+  // Automatically reset to First Startup Screen if 0 user-created goals exist and not in demo mode
+  useEffect(() => {
+    if (goals && userGoals.length === 0 && settings.onboarding_completed && !settings.is_demo_mode) {
+      const resetNoGoalsState = async () => {
+        await clearDemoData();
+        await updateSettings({ onboarding_completed: false, is_demo_mode: false });
+      };
+      resetNoGoalsState();
+    }
+  }, [goals, userGoals.length, settings.onboarding_completed, settings.is_demo_mode]);
 
   // Apply Theme & Font Scale HTML Body Classes
   useEffect(() => {
@@ -88,6 +104,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateSettings = async (newSettings: Partial<MetaSettings>) => {
     const updated = { ...settings, ...newSettings };
+    setOverrideSettings(updated);
     await db.meta.put({ key: 'settings', value: updated });
   };
 

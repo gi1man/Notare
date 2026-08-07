@@ -22,6 +22,13 @@ export const EntryForm: React.FC = () => {
   const [dualValue2, setDualValue2] = useState<string>('80');
   const [noteText, setNoteText] = useState<string>('');
 
+  // Default to current local date and time YYYY-MM-DDTHH:mm
+  const [occurredAtStr, setOccurredAtStr] = useState<string>(() => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    return new Date(now.getTime() - offset).toISOString().slice(0, 16);
+  });
+
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordSecondsLeft, setRecordSecondsLeft] = useState(30);
@@ -118,7 +125,7 @@ export const EntryForm: React.FC = () => {
     if (!selectedSubcategory || isDebounced) return;
     triggerDebounce(1500);
 
-    const occurredAt = new Date();
+    const occurredAt = occurredAtStr ? new Date(occurredAtStr) : new Date();
 
     let parsedValue: any = null;
     const schema = selectedSubcategory.value_schema;
@@ -176,14 +183,23 @@ export const EntryForm: React.FC = () => {
         <span>{selectedCategory.name}</span>
       </button>
 
-      {/* 📍 Breadcrumb & Date Header */}
-      <div className="space-y-1">
+      {/* 📍 Breadcrumb & Date-Time Picker Header */}
+      <div className="space-y-2">
         <div className="text-sm font-semibold text-slate-600 dark:text-slate-400">
           {selectedCategory.name} • {selectedSubcategory.name}
         </div>
-        <h2 className="text-2xl font-bold text-notare-charcoal dark:text-notare-parchment">
-          Today, {new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase()}
-        </h2>
+
+        <div className="space-y-1">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+            Log Timestamp (Default: Now)
+          </label>
+          <input
+            type="datetime-local"
+            value={occurredAtStr}
+            onChange={(e) => setOccurredAtStr(e.target.value)}
+            className="w-full p-3 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 font-bold text-base text-[#0F4C45] dark:text-white focus:ring-2 focus:ring-[#0F4C45]"
+          />
+        </div>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6 pt-2">

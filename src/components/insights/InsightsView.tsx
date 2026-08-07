@@ -27,9 +27,18 @@ import {
   Bot,
 } from 'lucide-react';
 
+import { useApp } from '../../context/AppContext';
+
 export const InsightsView: React.FC = () => {
-  const categories = useLiveQuery(() => db.categories.filter((c) => !c.deleted_at).toArray());
-  const entries = useLiveQuery(() => db.entries.filter((e) => !e.deleted_at).toArray());
+  const { settings } = useApp();
+  const categories = useLiveQuery(
+    () => db.categories.filter((c) => !c.deleted_at && (settings.is_demo_mode || !c.is_demo)).toArray(),
+    [settings.is_demo_mode]
+  );
+  const entries = useLiveQuery(
+    () => db.entries.filter((e) => !e.deleted_at && (settings.is_demo_mode || !e.is_demo)).toArray(),
+    [settings.is_demo_mode]
+  );
 
   const [communityInsights, setCommunityInsights] = useState<CommunityInsightItem[]>(
     DEFAULT_COMMUNITY_INSIGHTS

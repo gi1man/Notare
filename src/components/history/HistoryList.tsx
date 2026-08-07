@@ -8,26 +8,27 @@ import { EditEntryModal } from './EditEntryModal';
 import { Search, Trash2, Calendar, FileText, Mic, Edit3 } from 'lucide-react';
 
 export const HistoryList: React.FC = () => {
-  const { triggerUndoToast } = useApp();
+  const { settings, triggerUndoToast } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCatFilter, setSelectedCatFilter] = useState<string>('all');
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
 
   // Fetch all categories for lookup & filter pills
-  const categories = useLiveQuery(() =>
-    db.categories.filter((c) => !c.deleted_at).toArray()
+  const categories = useLiveQuery(
+    () => db.categories.filter((c) => !c.deleted_at && (settings.is_demo_mode || !c.is_demo)).toArray(),
+    [settings.is_demo_mode]
   );
 
   // Fetch entries sorted by occurred_at descending
   const entries = useLiveQuery(async () => {
     let list = await db.entries
-      .filter((e) => !e.deleted_at)
+      .filter((e) => !e.deleted_at && (settings.is_demo_mode || !e.is_demo))
       .toArray();
 
     return list.sort(
       (a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime()
     );
-  });
+  }, [settings.is_demo_mode]);
 
   const categoryMap = new Map<string, Category>();
   categories?.forEach((c) => categoryMap.set(c.id, c));

@@ -1,7 +1,5 @@
 import Dexie, { Table } from 'dexie';
 import { Category, Entry, Goal } from '../types';
-import { STARTER_CATEGORIES } from './starterData';
-import { generateDummyData } from './dummyDataGenerator';
 
 export class NotareDB extends Dexie {
   categories!: Table<Category, string>;
@@ -21,26 +19,6 @@ export class NotareDB extends Dexie {
   }
 
   async initializeDefaults() {
-    // Ensure all latest starter categories (Fitness & Health, Sleep Time, etc.) exist and update names in IndexedDB
-    for (const cat of STARTER_CATEGORIES) {
-      const existing = await this.categories.get(cat.id);
-      if (!existing) {
-        await this.categories.put(cat);
-      } else if (existing.name !== cat.name || existing.parent_id !== cat.parent_id) {
-        await this.categories.update(cat.id, {
-          name: cat.name,
-          parent_id: cat.parent_id,
-          icon: cat.icon,
-        });
-      }
-    }
-
-    // Soft delete obsolete Health & Vitals category if present
-    const healthCat = await this.categories.get('cat-health');
-    if (healthCat && !healthCat.deleted_at) {
-      await this.categories.update('cat-health', { deleted_at: new Date().toISOString() });
-    }
-
     const settings = await this.meta.get('settings');
     if (!settings) {
       await this.meta.put({
@@ -58,12 +36,6 @@ export class NotareDB extends Dexie {
           ios_a2hs_dismissed: false,
         },
       });
-    }
-
-    // Auto-seed demo data if entries table is empty
-    const entryCount = await this.entries.count();
-    if (entryCount === 0) {
-      await generateDummyData();
     }
   }
 }

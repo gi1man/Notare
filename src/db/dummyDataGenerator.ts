@@ -1,14 +1,24 @@
 import { db } from './index';
 import { Entry, Goal } from '../types';
+import { STARTER_CATEGORIES } from './starterData';
 
 export const generateDummyData = async () => {
   const now = new Date();
 
-  // Clear existing demo entries to ensure fresh state
+  // Clear existing demo entries & goals to ensure clean state
   await db.entries.clear();
   await db.goals.clear();
 
-  // Seed default goals
+  // 1. Ensure starter categories are loaded and marked with is_demo: true
+  for (const cat of STARTER_CATEGORIES) {
+    await db.categories.put({
+      ...cat,
+      is_demo: true,
+      deleted_at: null,
+    });
+  }
+
+  // 2. Seed default goals across Daily, Weekly, and Monthly frequencies with is_demo: true
   const defaultGoals: Goal[] = [
     {
       id: 'goal-walking-demo',
@@ -18,111 +28,112 @@ export const generateDummyData = async () => {
       target_value: 30,
       frequency: 'daily',
       updated_at: new Date().toISOString(),
+      is_demo: true,
     },
     {
-      id: 'goal-sleep-demo',
-      subcategory_id: 'sub-sleep',
+      id: 'goal-water-demo',
+      subcategory_id: 'sub-water',
       direction: 'at_least',
-      target_type: 'time',
-      target_value: 7.5,
+      target_type: 'count',
+      target_value: 8,
       frequency: 'daily',
       updated_at: new Date().toISOString(),
+      is_demo: true,
+    },
+    {
+      id: 'goal-resistance-demo',
+      subcategory_id: 'sub-resistance',
+      direction: 'at_least',
+      target_type: 'count',
+      target_value: 3,
+      frequency: 'weekly',
+      updated_at: new Date().toISOString(),
+      is_demo: true,
+    },
+    {
+      id: 'goal-gardening-demo',
+      subcategory_id: 'sub-gardening',
+      direction: 'at_least',
+      target_type: 'time',
+      target_value: 120,
+      frequency: 'weekly',
+      updated_at: new Date().toISOString(),
+      is_demo: true,
     },
     {
       id: 'goal-reading-demo',
       subcategory_id: 'sub-reading',
       direction: 'at_least',
       target_type: 'time',
-      target_value: 30,
-      frequency: 'daily',
+      target_value: 300,
+      frequency: 'monthly',
       updated_at: new Date().toISOString(),
+      is_demo: true,
     },
     {
-      id: 'goal-tv-demo',
-      subcategory_id: 'sub-tv',
-      direction: 'at_most',
-      target_type: 'time',
-      target_value: 60,
-      frequency: 'daily',
+      id: 'goal-sailing-demo',
+      subcategory_id: 'sub-sailing',
+      direction: 'at_least',
+      target_type: 'count',
+      target_value: 3,
+      frequency: 'monthly',
       updated_at: new Date().toISOString(),
+      is_demo: true,
     },
   ];
 
   await db.goals.bulkPut(defaultGoals);
 
+  // 3. Generate 14 days of entries with is_demo: true
   const newEntries: Entry[] = [];
 
-  // Generate 14 days of realistic entries (from 13 days ago up to today)
   for (let dayOffset = 13; dayOffset >= 0; dayOffset--) {
-    // Construct local date at 00:00:00
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOffset);
 
-    // Walking (Daily) — 35 mins
+    // Walking (Daily Goal: 30m) — Logged 35m today -> Completed!
     const walkTime = new Date(d);
     walkTime.setHours(8, 30, 0, 0);
     newEntries.push({
       id: `demo-walk-${dayOffset}`,
       subcategory_id: 'sub-walking',
       occurred_at: walkTime.toISOString(),
-      value: 35, // Exceeds 30m goal -> Completed!
+      value: 35,
       note_text: dayOffset % 2 === 0 ? 'Brisk morning walk around the neighborhood' : 'Park trail walk with friend',
       transcript_status: 'none',
       updated_at: walkTime.toISOString(),
+      is_demo: true,
     });
 
-    // Sleep Time (Daily) — 8.0 hrs
-    const sleepTime = new Date(d);
-    sleepTime.setHours(7, 0, 0, 0);
-    newEntries.push({
-      id: `demo-sleep-${dayOffset}`,
-      subcategory_id: 'sub-sleep',
-      occurred_at: sleepTime.toISOString(),
-      value: 8.0, // Exceeds 7.5h goal -> Completed!
-      note_text: 'Restful 8 hours sleep',
-      transcript_status: 'none',
-      updated_at: sleepTime.toISOString(),
-    });
-
-    // Water Intake (Daily)
+    // Water Intake (Daily Goal: 8 glasses)
     const waterTime = new Date(d);
     waterTime.setHours(12, 0, 0, 0);
     newEntries.push({
       id: `demo-water-${dayOffset}`,
       subcategory_id: 'sub-water',
       occurred_at: waterTime.toISOString(),
-      value: 8,
+      value: dayOffset === 0 ? 4 : 8,
       transcript_status: 'none',
       updated_at: waterTime.toISOString(),
+      is_demo: true,
     });
 
-    // Reading (Daily) — 40 mins
-    const readingTime = new Date(d);
-    readingTime.setHours(14, 0, 0, 0);
-    newEntries.push({
-      id: `demo-reading-${dayOffset}`,
-      subcategory_id: 'sub-reading',
-      occurred_at: readingTime.toISOString(),
-      value: 40, // Exceeds 30m goal -> Completed!
-      note_text: 'Finished chapter on Renaissance history',
-      transcript: dayOffset % 3 === 0 ? 'Loved the details about Florence architecture.' : undefined,
-      transcript_status: dayOffset % 3 === 0 ? 'done' : 'none',
-      updated_at: readingTime.toISOString(),
-    });
+    // Book Reading (Monthly Goal: 300m)
+    if (dayOffset % 2 === 0) {
+      const readingTime = new Date(d);
+      readingTime.setHours(14, 0, 0, 0);
+      newEntries.push({
+        id: `demo-reading-${dayOffset}`,
+        subcategory_id: 'sub-reading',
+        occurred_at: readingTime.toISOString(),
+        value: 40,
+        note_text: 'Reading history and literature',
+        transcript_status: 'none',
+        updated_at: readingTime.toISOString(),
+        is_demo: true,
+      });
+    }
 
-    // Watching TV (Daily) — 45 mins
-    const tvTime = new Date(d);
-    tvTime.setHours(16, 0, 0, 0);
-    newEntries.push({
-      id: `demo-tv-${dayOffset}`,
-      subcategory_id: 'sub-tv',
-      occurred_at: tvTime.toISOString(),
-      value: 45, // Under 60m limit cap -> Completed!
-      note_text: 'Nature documentary episode',
-      transcript_status: 'none',
-      updated_at: tvTime.toISOString(),
-    });
-
-    // Resistance Training (Mon, Wed, Fri)
+    // Resistance Training (Weekly Goal: 3 count)
     if (d.getDay() === 1 || d.getDay() === 3 || d.getDay() === 5) {
       const workoutTime = new Date(d);
       workoutTime.setHours(10, 30, 0, 0);
@@ -130,15 +141,16 @@ export const generateDummyData = async () => {
         id: `demo-resistance-${dayOffset}`,
         subcategory_id: 'sub-resistance',
         occurred_at: workoutTime.toISOString(),
-        value: 45,
-        note_text: 'Upper body and core exercises',
+        value: 1,
+        note_text: 'Upper body & core exercises',
         transcript_status: 'none',
         updated_at: workoutTime.toISOString(),
+        is_demo: true,
       });
     }
 
-    // Gardening & Yard (Sat, Sun)
-    if (d.getDay() === 6 || d.getDay() === 0) {
+    // Gardening & Yard (Weekly Goal: 120m)
+    if (dayOffset === 2) {
       const gardenTime = new Date(d);
       gardenTime.setHours(11, 0, 0, 0);
       newEntries.push({
@@ -146,13 +158,68 @@ export const generateDummyData = async () => {
         subcategory_id: 'sub-gardening',
         occurred_at: gardenTime.toISOString(),
         value: 60,
-        note_text: 'Pruned rose bushes and potted tomato plants',
+        note_text: 'Pruned rose bushes',
         transcript_status: 'none',
         updated_at: gardenTime.toISOString(),
+        is_demo: true,
+      });
+    }
+
+    // Sailing (Monthly Goal: 3 count)
+    if (dayOffset === 8) {
+      const sailTime = new Date(d);
+      sailTime.setHours(15, 0, 0, 0);
+      newEntries.push({
+        id: `demo-sailing-${dayOffset}`,
+        subcategory_id: 'sub-sailing',
+        occurred_at: sailTime.toISOString(),
+        value: 1,
+        note_text: 'Afternoon coastal sailing trip',
+        transcript_status: 'none',
+        updated_at: sailTime.toISOString(),
+        is_demo: true,
       });
     }
   }
 
   // Bulk add entries to Dexie
   await db.entries.bulkPut(newEntries);
+
+  // Set is_demo_mode: true in settings
+  const existingSettings = await db.meta.get('settings');
+  if (existingSettings) {
+    await db.meta.put({
+      key: 'settings',
+      value: { ...existingSettings.value, is_demo_mode: true },
+    });
+  }
+};
+
+/**
+ * Helper to exit demo mode:
+ * Clears demo entries and demo goals from IndexedDB while preserving user-created categories and user entries!
+ */
+export const clearDemoData = async () => {
+  // Delete all demo entries
+  const allEntries = await db.entries.toArray();
+  const demoEntryIds = allEntries.filter((e) => e.is_demo).map((e) => e.id);
+  if (demoEntryIds.length > 0) {
+    await db.entries.bulkDelete(demoEntryIds);
+  }
+
+  // Delete all demo goals
+  const allGoals = await db.goals.toArray();
+  const demoGoalIds = allGoals.filter((g) => g.is_demo).map((g) => g.id);
+  if (demoGoalIds.length > 0) {
+    await db.goals.bulkDelete(demoGoalIds);
+  }
+
+  // Turn off is_demo_mode flag
+  const existingSettings = await db.meta.get('settings');
+  if (existingSettings) {
+    await db.meta.put({
+      key: 'settings',
+      value: { ...existingSettings.value, is_demo_mode: false },
+    });
+  }
 };

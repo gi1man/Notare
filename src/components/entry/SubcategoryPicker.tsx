@@ -9,7 +9,7 @@ import { GoalEditorModal } from '../goals/GoalEditorModal';
 import { ChevronLeft, Plus, X } from 'lucide-react';
 
 export const SubcategoryPicker: React.FC = () => {
-  const { selectedCategory, setSelectedSubcategory, setEntryStep, isDebounced, triggerDebounce } = useApp();
+  const { settings, selectedCategory, setSelectedSubcategory, setEntryStep, isDebounced, triggerDebounce } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [goalModalSub, setGoalModalSub] = useState<Category | null>(null);
   const [newSubName, setNewSubName] = useState('');
@@ -23,11 +23,11 @@ export const SubcategoryPicker: React.FC = () => {
     const list = await db.categories
       .where('parent_id')
       .equals(selectedCategory.id)
-      .filter((c) => !c.deleted_at)
+      .filter((c) => !c.deleted_at && (settings.is_demo_mode || !c.is_demo))
       .toArray();
 
     return list.sort((a, b) => a.sort_order - b.sort_order);
-  }, [selectedCategory?.id]);
+  }, [selectedCategory?.id, settings.is_demo_mode]);
 
   const handleSelectSubcategory = (sub: Category) => {
     if (isDebounced) return;
@@ -79,7 +79,7 @@ export const SubcategoryPicker: React.FC = () => {
           className="px-4 py-2.5 bg-[#0F4C45] text-[#F5F1E8] hover:bg-[#135c54] dark:bg-sky-900/60 dark:text-sky-300 dark:hover:bg-sky-900 font-bold text-sm rounded-xl shadow-sm flex items-center gap-1.5"
         >
           <Plus className="w-4 h-4 text-[#8FA99B] dark:text-sky-300" />
-          Add Item
+          Add Goal
         </button>
       </div>
 

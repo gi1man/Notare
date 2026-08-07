@@ -8,15 +8,15 @@ import { IconPicker } from '../common/IconPicker';
 import { Plus, X } from 'lucide-react';
 
 export const CategoryPicker: React.FC = () => {
-  const { setSelectedCategory, setEntryStep, isDebounced, triggerDebounce } = useApp();
+  const { settings, setSelectedCategory, setEntryStep, isDebounced, triggerDebounce } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [newCatIcon, setNewCatIcon] = useState('Bookmark');
 
-  // Fetch active top-level categories from Dexie
+  // Fetch active top-level categories from Dexie (filtering user-created only when not in demo mode)
   const categories = useLiveQuery(async () => {
     const list = await db.categories
-      .filter((c) => c.parent_id === null && !c.deleted_at)
+      .filter((c) => c.parent_id === null && !c.deleted_at && (settings.is_demo_mode || !c.is_demo))
       .toArray();
 
     // Sort: Pinned first, then by sort_order
@@ -25,7 +25,7 @@ export const CategoryPicker: React.FC = () => {
       if (!a.pinned && b.pinned) return 1;
       return a.sort_order - b.sort_order;
     });
-  });
+  }, [settings.is_demo_mode]);
 
   const handleSelectCategory = (cat: Category) => {
     if (isDebounced) return;
@@ -70,6 +70,26 @@ export const CategoryPicker: React.FC = () => {
           Add Category
         </button>
       </div>
+
+      {/* Empty State when 0 Categories exist */}
+      {categories && categories.length === 0 && (
+        <div className="text-center py-12 p-8 rounded-3xl bg-white/60 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 space-y-4">
+          <div className="text-4xl">📂</div>
+          <h3 className="text-2xl font-bold font-serif-logo text-[#0F4C45] dark:text-white">
+            No Categories Yet
+          </h3>
+          <p className="text-sm text-slate-600 dark:text-slate-300 max-w-sm mx-auto">
+            Create your first activity category or set a goal to start logging!
+          </p>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-6 py-3 bg-[#0F4C45] hover:bg-[#135c54] dark:bg-sky-600 dark:hover:bg-sky-700 text-white font-bold text-base rounded-2xl shadow-md transition-all tap-target inline-flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Create First Category
+          </button>
+        </div>
+      )}
 
       {/* 🎴 Responsive Floating Category Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">

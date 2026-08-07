@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../db';
-import { STARTER_CATEGORIES } from '../db/starterData';
-import { Entry } from '../types';
+import { Category, Entry } from '../types';
 
 describe('Notare IndexedDB Store', () => {
   beforeEach(async () => {
@@ -12,13 +11,9 @@ describe('Notare IndexedDB Store', () => {
     await db.initializeDefaults();
   });
 
-  it('initializes starter categories on first run', async () => {
+  it('initializes clean with 0 categories by default', async () => {
     const categories = await db.categories.toArray();
-    expect(categories.length).toBe(STARTER_CATEGORIES.length);
-
-    const fitnessCat = await db.categories.get('cat-fitness');
-    expect(fitnessCat?.name).toBe('Fitness & Health');
-    expect(fitnessCat?.pinned).toBe(true);
+    expect(categories.length).toBe(0);
   });
 
   it('adds and retrieves an entry cleanly', async () => {
@@ -57,6 +52,16 @@ describe('Notare IndexedDB Store', () => {
   });
 
   it('soft-deletes categories without losing past data', async () => {
+    const testCat: Category = {
+      id: 'sub-walking',
+      parent_id: 'cat-fitness',
+      name: 'Walking',
+      icon: 'Footprints',
+      sort_order: 1,
+      updated_at: new Date().toISOString(),
+    };
+    await db.categories.put(testCat);
+
     const cat = await db.categories.get('sub-walking');
     expect(cat).toBeDefined();
 
@@ -110,6 +115,16 @@ describe('Notare IndexedDB Store', () => {
   });
 
   it('moves a subcategory item to a different parent category', async () => {
+    const testSub: Category = {
+      id: 'sub-sailing',
+      parent_id: 'cat-life',
+      name: 'Sailing',
+      icon: 'Anchor',
+      sort_order: 1,
+      updated_at: new Date().toISOString(),
+    };
+    await db.categories.put(testSub);
+
     const sub = await db.categories.get('sub-sailing');
     expect(sub?.parent_id).toBe('cat-life');
 

@@ -10,11 +10,24 @@ import { GoalTrendSection } from './GoalTrendSection';
 import { generateDummyData } from '../../db/dummyDataGenerator';
 import { Flame, Trophy, Target, Sparkles } from 'lucide-react';
 
+import { useApp } from '../../context/AppContext';
+
 export const DashboardView: React.FC = () => {
+  const { settings } = useApp();
   const [editingGoalSub, setEditingGoalSub] = useState<Category | null>(null);
-  const categories = useLiveQuery(() => db.categories.filter((c) => !c.deleted_at).toArray());
-  const entries = useLiveQuery(() => db.entries.filter((e) => !e.deleted_at).toArray());
-  const goals = useLiveQuery(() => db.goals.toArray());
+
+  const categories = useLiveQuery(
+    () => db.categories.filter((c) => !c.deleted_at && (settings.is_demo_mode || !c.is_demo)).toArray(),
+    [settings.is_demo_mode]
+  );
+  const entries = useLiveQuery(
+    () => db.entries.filter((e) => !e.deleted_at && (settings.is_demo_mode || !e.is_demo)).toArray(),
+    [settings.is_demo_mode]
+  );
+  const goals = useLiveQuery(
+    () => db.goals.filter((g) => (settings.is_demo_mode || !g.is_demo)).toArray(),
+    [settings.is_demo_mode]
+  );
 
   const categoryMap = new Map<string, Category>();
   categories?.forEach((c) => categoryMap.set(c.id, c));
