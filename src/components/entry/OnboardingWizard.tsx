@@ -19,8 +19,8 @@ import {
   ArrowLeft,
   Plus,
   Home,
-  Smartphone,
   UserCheck,
+  LogIn,
 } from 'lucide-react';
 
 interface CategoryTemplate {
@@ -66,14 +66,17 @@ const CATEGORY_TEMPLATES: CategoryTemplate[] = [
 export const OnboardingWizard: React.FC = () => {
   const { updateSettings, setActiveTab, resetToCategoryPicker } = useApp();
 
-  // Mode: 'choice' | 'add_goals' | 'sign_in'
-  const [wizardMode, setWizardMode] = useState<'choice' | 'add_goals' | 'sign_in'>('choice');
+  // Wizard Step Flow: 'auth' -> 'experience_choice' -> 'add_goals'
+  const [wizardStep, setWizardStep] = useState<'auth' | 'experience_choice' | 'add_goals'>('auth');
+  const [authTab, setAuthTab] = useState<'create' | 'login'>('create');
+
   const [showAddAnotherPrompt, setShowAddAnotherPrompt] = useState<boolean>(false);
 
-  // Auth Sync State for 1st Use
+  // Auth Inputs
   const [accountEmail, setAccountEmail] = useState<string>('');
   const [accountPassword, setAccountPassword] = useState<string>('');
   const [authError, setAuthError] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Category Selection State
   const [selectedTemplate, setSelectedTemplate] = useState<CategoryTemplate | null>(null);
@@ -87,22 +90,52 @@ export const OnboardingWizard: React.FC = () => {
   const [targetVal, setTargetVal] = useState<number>(30);
   const [targetUnit, setTargetUnit] = useState<string>('mins');
   const [frequency, setFrequency] = useState<GoalFrequency>('daily');
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  // Option 1: Explore Demo Mode
+  // Step 1: Submit Account Creation or Login
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!accountEmail.trim() || !accountPassword || isSubmitting) return;
+    setIsSubmitting(true);
+    setAuthError('');
+
+    try {
+      if (authTab === 'create') {
+        // Create new account in Firebase
+        await registerWithEmailPassword(accountEmail.trim(), accountPassword);
+        // Move to Screen 2 (Experience Choice)
+        setWizardStep('experience_choice');
+      } else {
+        // Sign in existing user in Firebase
+        await signInWithEmailPassword(accountEmail.trim(), accountPassword);
+        const existingEntries = await db.entries.count();
+        if (existingEntries > 0) {
+          // Existing user already has data, finish onboarding and go straight home
+          await updateSettings({ onboarding_completed: true, is_demo_mode: false });
+          setActiveTab('entry');
+          resetToCategoryPicker();
+        } else {
+          // New/Empty existing user account, move to Screen 2 (Experience Choice)
+          setWizardStep('experience_choice');
+        }
+      }
+    } catch (err: any) {
+      console.error('Authentication error:', err);
+      setAuthError(err.message || 'Authentication failed. Please check your credentials.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Step 2 Option A: Choose Demo Mode
   const handleChooseDemoMode = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
-      // Set settings first to prevent race condition
       await updateSettings({ is_demo_mode: true, onboarding_completed: true });
-
-      // Ensure starter categories exist in DB
       for (const cat of STARTER_CATEGORIES) {
         await db.categories.put({ ...cat, deleted_at: null });
       }
-
       await generateDummyData();
       setActiveTab('dashboard');
     } catch (err) {
@@ -112,7 +145,7 @@ export const OnboardingWizard: React.FC = () => {
     }
   };
 
-  // Option 2: Create Custom Account & Goal
+  // Step 3: Save Custom Category & Goal
   const handleCreateCategoryAndGoal = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalCatName = selectedTemplate ? selectedTemplate.name : customCatName.trim();
@@ -120,18 +153,8 @@ export const OnboardingWizard: React.FC = () => {
 
     if (!finalCatName || !finalItemName || isSubmitting) return;
     setIsSubmitting(true);
-    setAuthError('');
 
     try {
-      // Create Firebase Auth account if email & password are provided
-      if (accountEmail.trim() && accountPassword) {
-        try {
-          await registerWithEmailPassword(accountEmail.trim(), accountPassword);
-        } catch (err: any) {
-          console.warn('Account registration warning:', err);
-        }
-      }
-
       // 1. Create Top-Level Category
       const parentCatId = selectedTemplate ? selectedTemplate.id : `cat-${Date.now()}`;
       let parentCat = await db.categories.get(parentCatId);
@@ -176,37 +199,14 @@ export const OnboardingWizard: React.FC = () => {
       await db.goals.put(newGoal);
       await syncGoalToCloud(newGoal);
 
-      // Prompt user: Add another goal or go to home screen
       setShowAddAnotherPrompt(true);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to create category and goal:', err);
-      setAuthError(err.message || 'Failed to create goal.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Option 3: Sign In on 2nd Phone
-  const handleSignInOn2ndDevice = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!accountEmail.trim() || !accountPassword || isSubmitting) return;
-    setIsSubmitting(true);
-    setAuthError('');
-
-    try {
-      await signInWithEmailPassword(accountEmail.trim(), accountPassword);
-      await updateSettings({ onboarding_completed: true, is_demo_mode: false });
-      setActiveTab('entry');
-      resetToCategoryPicker();
-    } catch (err: any) {
-      console.error('Failed to sign in:', err);
-      setAuthError(err.message || 'Failed to sign in. Please verify your email and password.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // User selects "Add Another Goal"
   const handleAddAnotherGoal = () => {
     setSelectedTemplate(null);
     setCustomCatName('');
@@ -217,7 +217,6 @@ export const OnboardingWizard: React.FC = () => {
     setShowAddAnotherPrompt(false);
   };
 
-  // User selects "Not Now, Go to Home Screen"
   const handleFinishAndGoHome = async () => {
     await updateSettings({ onboarding_completed: true, is_demo_mode: false });
     setActiveTab('entry');
@@ -233,7 +232,7 @@ export const OnboardingWizard: React.FC = () => {
   };
 
   const effectiveCatName = selectedTemplate ? selectedTemplate.name : customCatName.trim();
-  const canSubmit = Boolean(effectiveCatName && itemName.trim());
+  const canSubmitGoal = Boolean(effectiveCatName && itemName.trim());
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
@@ -257,7 +256,6 @@ export const OnboardingWizard: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              {/* Option 1: Yes, Add Another Goal */}
               <button
                 type="button"
                 onClick={handleAddAnotherGoal}
@@ -267,7 +265,6 @@ export const OnboardingWizard: React.FC = () => {
                 Add Another Goal
               </button>
 
-              {/* Option 2: Not Now, Go to Home Screen */}
               <button
                 type="button"
                 onClick={handleFinishAndGoHome}
@@ -281,12 +278,12 @@ export const OnboardingWizard: React.FC = () => {
         ) : (
           <>
             {/* ============================================================ */}
-            {/* SCREEN 1: FIRST STARTUP CHOICE SCREEN                        */}
+            {/* STEP 1: INITIAL STARTUP ACCOUNT SETUP SCREEN                 */}
             {/* ============================================================ */}
-            {wizardMode === 'choice' && (
-              <div className="space-y-6 text-center">
+            {wizardStep === 'auth' && (
+              <div className="space-y-6">
                 {/* Header */}
-                <div className="space-y-2">
+                <div className="space-y-2 text-center">
                   <div className="inline-flex p-3.5 bg-[#0F4C45] text-[#F5F1E8] dark:bg-sky-600 dark:text-white rounded-2xl shadow-md">
                     <FolderPlus className="w-8 h-8 stroke-[2.2]" />
                   </div>
@@ -294,13 +291,110 @@ export const OnboardingWizard: React.FC = () => {
                     Welcome to Notare 🌿
                   </h2>
                   <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed max-w-md mx-auto">
-                    How would you like to get started today?
+                    Create an account or sign in to get started.
                   </p>
                 </div>
 
-                {/* Startup Choice Cards */}
+                {/* Tab Switcher: Create Account vs Sign In */}
+                <div className="flex rounded-2xl bg-white dark:bg-slate-900 p-1 border border-slate-300 dark:border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthTab('create');
+                      setAuthError('');
+                    }}
+                    className={`flex-1 py-3 text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-2 ${
+                      authTab === 'create'
+                        ? 'bg-[#0F4C45] text-white dark:bg-sky-600 shadow-md'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                    }`}
+                  >
+                    <UserCheck className="w-4 h-4" />
+                    Create Account
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthTab('login');
+                      setAuthError('');
+                    }}
+                    className={`flex-1 py-3 text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-2 ${
+                      authTab === 'login'
+                        ? 'bg-[#0F4C45] text-white dark:bg-sky-600 shadow-md'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                    }`}
+                  >
+                    <LogIn className="w-4 h-4" />
+                    Sign In
+                  </button>
+                </div>
+
+                {/* Auth Form */}
+                <form onSubmit={handleAuthSubmit} className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      Email / Username
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="e.g. name@example.com"
+                      value={accountEmail}
+                      onChange={(e) => setAccountEmail(e.target.value)}
+                      className="w-full p-3.5 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#0F4C45]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      Password (Letters, Numbers & Special Characters)
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      placeholder={authTab === 'create' ? 'Choose a password...' : 'Enter password...'}
+                      value={accountPassword}
+                      onChange={(e) => setAccountPassword(e.target.value)}
+                      className="w-full p-3.5 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#0F4C45]"
+                    />
+                  </div>
+
+                  {authError && (
+                    <div className="p-3 rounded-xl bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 text-xs font-bold">
+                      {authError}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !accountEmail || !accountPassword}
+                    className="w-full py-4 px-6 bg-[#0F4C45] hover:bg-[#135c54] disabled:opacity-40 text-white font-extrabold rounded-2xl text-base shadow-lg transition-all tap-target flex items-center justify-center gap-2"
+                  >
+                    {authTab === 'create' ? 'Create Account & Continue →' : 'Sign In & Continue →'}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* ============================================================ */}
+            {/* STEP 2: EXPERIENCE CHOICE (Demo Mode vs Create Goals)        */}
+            {/* ============================================================ */}
+            {wizardStep === 'experience_choice' && (
+              <div className="space-y-6 text-center">
+                {/* Header */}
+                <div className="space-y-2">
+                  <h2 className="text-3xl font-bold font-serif-logo text-[#0F4C45] dark:text-white">
+                    How would you like to start? 🌿
+                  </h2>
+                  <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed max-w-md mx-auto">
+                    Account ready! Choose your initial experience below:
+                  </p>
+                </div>
+
+                {/* 2 Choice Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  {/* Option A: Explore Demo Mode */}
+                  {/* Option 1: Explore Demo Mode */}
                   <button
                     type="button"
                     onClick={handleChooseDemoMode}
@@ -318,10 +412,10 @@ export const OnboardingWizard: React.FC = () => {
                     </div>
                   </button>
 
-                  {/* Option B: Create Account & Add Goals */}
+                  {/* Option 2: Create Custom Goals */}
                   <button
                     type="button"
-                    onClick={() => setWizardMode('add_goals')}
+                    onClick={() => setWizardStep('add_goals')}
                     disabled={isSubmitting}
                     className="group flex flex-col items-center justify-between p-6 rounded-3xl bg-[#0F4C45] text-[#F5F1E8] hover:bg-[#135c54] dark:bg-sky-600 dark:text-white transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:scale-95 tap-target text-center space-y-4"
                   >
@@ -329,109 +423,28 @@ export const OnboardingWizard: React.FC = () => {
                       <Target className="w-7 h-7" />
                     </div>
                     <div className="space-y-1">
-                      <div className="font-extrabold text-xl">Create Account & Goals</div>
+                      <div className="font-extrabold text-xl">Create Custom Goals</div>
                       <div className="text-xs font-semibold opacity-90 leading-relaxed">
-                        Create your username & password to set up Cloud Sync and start clean.
+                        Set up your custom categories, activity goals, and targets right now.
                       </div>
                     </div>
                   </button>
                 </div>
-
-                {/* Option C: Sign In to Existing Account */}
-                <div className="pt-2 border-t border-slate-300 dark:border-slate-700">
-                  <button
-                    type="button"
-                    onClick={() => setWizardMode('sign_in')}
-                    className="w-full py-3.5 px-4 bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-700 text-[#0F4C45] dark:text-white font-bold rounded-2xl border border-slate-300 dark:border-slate-600 text-sm shadow-sm transition-all flex items-center justify-center gap-2 tap-target"
-                  >
-                    <Smartphone className="w-4 h-4" />
-                    Use Existing Login / Link Device
-                  </button>
-                </div>
               </div>
             )}
 
             {/* ============================================================ */}
-            {/* SCREEN 2: SIGN IN / LINK EXISTING DEVICE                     */}
+            {/* STEP 3: CREATE CUSTOM GOALS                                  */}
             {/* ============================================================ */}
-            {wizardMode === 'sign_in' && (
-              <div className="space-y-6">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setWizardMode('choice')}
-                    className="p-2 rounded-xl text-[#0F4C45] dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                  >
-                    <ArrowLeft className="w-5 h-5" />
-                  </button>
-                  <h2 className="text-2xl font-bold font-serif-logo text-[#0F4C45] dark:text-white">
-                    Link 2nd Phone / Sign In 📱
-                  </h2>
-                </div>
-
-                <form onSubmit={handleSignInOn2ndDevice} className="space-y-4">
-                  <p className="text-xs font-medium text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Enter your account email and password to sync your existing goals and activity logs to this device.
-                  </p>
-
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                      Email / Username
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="e.g. name@example.com"
-                      value={accountEmail}
-                      onChange={(e) => setAccountEmail(e.target.value)}
-                      className="w-full p-3.5 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-medium text-slate-900 dark:text-white"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                      Password (Alphanumeric + Special Characters)
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      placeholder="Enter password..."
-                      value={accountPassword}
-                      onChange={(e) => setAccountPassword(e.target.value)}
-                      className="w-full p-3.5 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-medium text-slate-900 dark:text-white"
-                    />
-                  </div>
-
-                  {authError && (
-                    <div className="p-3 rounded-xl bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 text-xs font-bold">
-                      {authError}
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !accountEmail || !accountPassword}
-                    className="w-full py-4 px-6 bg-[#0F4C45] hover:bg-[#135c54] disabled:opacity-40 text-white font-extrabold rounded-2xl text-base shadow-lg transition-all tap-target flex items-center justify-center gap-2"
-                  >
-                    <Smartphone className="w-5 h-5 text-[#8FA99B]" />
-                    Sign In & Restore Data ✓
-                  </button>
-                </form>
-              </div>
-            )}
-
-            {/* ============================================================ */}
-            {/* SCREEN 3: ADD YOUR GOALS (CUSTOM CATEGORY & ITEM CREATOR)    */}
-            {/* ============================================================ */}
-            {wizardMode === 'add_goals' && (
+            {wizardStep === 'add_goals' && (
               <div className="space-y-6">
                 {/* Back Button & Header */}
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setWizardMode('choice')}
+                    onClick={() => setWizardStep('experience_choice')}
                     className="p-2 rounded-xl text-[#0F4C45] dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                    title="Back to Choices"
+                    title="Back to Choice"
                   >
                     <ArrowLeft className="w-5 h-5" />
                   </button>
@@ -441,48 +454,10 @@ export const OnboardingWizard: React.FC = () => {
                 </div>
 
                 <form onSubmit={handleCreateCategoryAndGoal} className="space-y-5">
-                  {/* Account Password Setup on 1st Use */}
-                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 space-y-3">
-                    <div className="flex items-center gap-2 text-[#0F4C45] dark:text-sky-400 font-bold text-sm">
-                      <UserCheck className="w-4 h-4" />
-                      Step 1: Set Account Password for Cloud Sync & 2nd Phone Link
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
-                          Email / Username
-                        </label>
-                        <input
-                          type="email"
-                          required
-                          placeholder="e.g. name@example.com"
-                          value={accountEmail}
-                          onChange={(e) => setAccountEmail(e.target.value)}
-                          className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-900 dark:text-white"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
-                          Password (Letters, Numbers, Specials)
-                        </label>
-                        <input
-                          type="password"
-                          required
-                          placeholder="e.g. MyPass#2026!"
-                          value={accountPassword}
-                          onChange={(e) => setAccountPassword(e.target.value)}
-                          className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-900 dark:text-white"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Step 2: Choose or Name Category */}
+                  {/* Step 1: Choose or Name Category */}
                   <div className="space-y-3">
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                      2. Choose or Create Category
+                      1. Choose or Create Category
                     </label>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -530,10 +505,10 @@ export const OnboardingWizard: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Step 3: Activity Item Name */}
+                  {/* Step 2: Activity Item Name */}
                   <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-700">
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                      3. Name Your Activity Item
+                      2. Name Your Activity Item
                     </label>
 
                     {selectedTemplate && selectedTemplate.suggestedItems.length > 0 && (
@@ -565,12 +540,11 @@ export const OnboardingWizard: React.FC = () => {
                     />
                   </div>
 
-                  {/* Step 4: Target Amount & Frequency */}
+                  {/* Step 3: Target Amount & Frequency */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200 dark:border-slate-700">
-                    {/* Target Value */}
                     <div className="space-y-1.5">
                       <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                        4. Target Amount ({targetUnit})
+                        3. Target Amount ({targetUnit})
                       </label>
                       <div className="flex items-center gap-2">
                         <input
@@ -591,7 +565,6 @@ export const OnboardingWizard: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Frequency Selector */}
                     <div className="space-y-1.5">
                       <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                         Frequency
@@ -615,17 +588,10 @@ export const OnboardingWizard: React.FC = () => {
                     </div>
                   </div>
 
-                  {authError && (
-                    <div className="p-3 rounded-xl bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 text-xs font-bold">
-                      {authError}
-                    </div>
-                  )}
-
-                  {/* Submit Action Button */}
                   <div className="pt-3">
                     <button
                       type="submit"
-                      disabled={!canSubmit || !accountEmail || !accountPassword || isSubmitting}
+                      disabled={!canSubmitGoal || isSubmitting}
                       className="w-full py-4 px-6 bg-[#0F4C45] hover:bg-[#135c54] disabled:opacity-40 dark:bg-sky-600 dark:hover:bg-sky-700 text-white font-extrabold rounded-2xl text-lg shadow-lg hover:shadow-xl transition-all tap-target flex items-center justify-center gap-2"
                     >
                       <Sparkles className="w-5 h-5 text-[#8FA99B] dark:text-white" />
