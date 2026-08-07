@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
+import { syncCategoryToCloud } from '../../db/firestoreSync';
 import { useApp } from '../../context/AppContext';
 import { Category } from '../../types';
 import { IconRenderer } from '../common/IconRenderer';
@@ -50,6 +51,7 @@ export const CategoryPicker: React.FC = () => {
     };
 
     await db.categories.add(newCat);
+    await syncCategoryToCloud(newCat);
     setNewCatName('');
     setShowAddModal(false);
   };

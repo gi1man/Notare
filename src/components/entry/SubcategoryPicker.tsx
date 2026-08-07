@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
+import { syncCategoryToCloud } from '../../db/firestoreSync';
 import { useApp } from '../../context/AppContext';
 import { Category, ValueSchemaType } from '../../types';
 import { IconRenderer } from '../common/IconRenderer';
@@ -56,6 +57,7 @@ export const SubcategoryPicker: React.FC = () => {
     };
 
     await db.categories.add(newSub);
+    await syncCategoryToCloud(newSub);
     setNewSubName('');
     setShowAddModal(false);
   };

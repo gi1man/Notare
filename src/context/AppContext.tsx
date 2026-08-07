@@ -4,6 +4,7 @@ import { db } from '../db';
 import { Category, Entry, MetaSettings, UndoToastState } from '../types';
 
 import { clearDemoData } from '../db/dummyDataGenerator';
+import { initFirebaseAuthAndSync, syncSettingsToCloud, deleteEntryFromCloud } from '../db/firestoreSync';
 
 export type ActiveTab = 'entry' | 'history' | 'dashboard' | 'insights' | 'settings';
 export type EntryStep = 'category_picker' | 'subcategory_picker' | 'entry_form';
@@ -102,10 +103,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [settings.font_scale, settings.high_a11y_profile, settings.theme]);
 
+  // Initialize Firebase Authentication & Cloud Sync Engine on App Mount
+  useEffect(() => {
+    initFirebaseAuthAndSync();
+  }, []);
+
   const updateSettings = async (newSettings: Partial<MetaSettings>) => {
     const updated = { ...settings, ...newSettings };
     setOverrideSettings(updated);
     await db.meta.put({ key: 'settings', value: updated });
+    await syncSettingsToCloud(updated);
   };
 
   const triggerDebounce = (durationMs = 1500) => {
@@ -140,8 +147,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!undoToast) return;
     if (undoToast.timeoutId) clearTimeout(undoToast.timeoutId);
 
-    // Delete entry from DB
+    // Delete entry from DB and Cloud
     await db.entries.delete(undoToast.id);
+    await deleteEntryFromCloud(undoToast.id);
     setUndoToast(null);
   };
 

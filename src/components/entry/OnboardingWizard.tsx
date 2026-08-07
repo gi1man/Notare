@@ -4,6 +4,7 @@ import { db } from '../../db';
 import { Goal, Category, GoalFrequency } from '../../types';
 import { STARTER_CATEGORIES } from '../../db/starterData';
 import { generateDummyData } from '../../db/dummyDataGenerator';
+import { syncCategoryToCloud, syncGoalToCloud } from '../../db/firestoreSync';
 import { IconRenderer } from '../common/IconRenderer';
 import { Target, Check, Sparkles, FolderPlus, ArrowLeft, Plus, Home } from 'lucide-react';
 
@@ -123,6 +124,7 @@ export const OnboardingWizard: React.FC = () => {
           updated_at: new Date().toISOString(),
         };
         await db.categories.put(parentCat);
+        await syncCategoryToCloud(parentCat);
       }
 
       // 2. Create Subcategory Activity Item
@@ -137,6 +139,7 @@ export const OnboardingWizard: React.FC = () => {
         updated_at: new Date().toISOString(),
       };
       await db.categories.put(newSub);
+      await syncCategoryToCloud(newSub);
 
       // 3. Create Goal
       const newGoal: Goal = {
@@ -149,6 +152,7 @@ export const OnboardingWizard: React.FC = () => {
         updated_at: new Date().toISOString(),
       };
       await db.goals.put(newGoal);
+      await syncGoalToCloud(newGoal);
 
       // Prompt user: Add another goal or go to home screen
       setShowAddAnotherPrompt(true);

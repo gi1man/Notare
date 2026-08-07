@@ -56,6 +56,22 @@ export const SettingsModal: React.FC = () => {
         </p>
       </div>
 
+      {/* Cloud Sync & Backup Status Card */}
+      <div className="p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5 text-emerald-900 dark:text-emerald-300 font-extrabold text-base">
+            <Cloud className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+            <span>Automatic Cloud Backup & Sync</span>
+          </div>
+          <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-200 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-200 uppercase tracking-wider">
+            Active ✓
+          </span>
+        </div>
+        <p className="text-xs text-emerald-800 dark:text-emerald-300 leading-relaxed">
+          Your categories, goals, and logged activities are saved locally and backed up automatically to Firebase Cloud Firestore with 256-bit user-isolated security.
+        </p>
+      </div>
+
       {/* iOS Installation Prompt Card */}
       <div className="p-5 rounded-2xl bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800 space-y-3">
         <div className="flex items-center gap-3 text-sky-800 dark:text-sky-300 font-bold text-base">

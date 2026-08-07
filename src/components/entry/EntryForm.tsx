@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Entry, DualNumberValue } from '../../types';
 import { db } from '../../db';
+import { syncEntryToCloud } from '../../db/firestoreSync';
 import { ChevronLeft, Mic } from 'lucide-react';
 
 export const EntryForm: React.FC = () => {
@@ -157,6 +158,7 @@ export const EntryForm: React.FC = () => {
     };
 
     await db.entries.add(newEntry);
+    await syncEntryToCloud(newEntry);
 
     triggerUndoToast(
       newEntry,
