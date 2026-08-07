@@ -4,6 +4,7 @@ import {
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  updatePassword,
 } from 'firebase/auth';
 import { doc, setDoc, getDocs, collection, deleteDoc } from 'firebase/firestore';
 import { db } from './index';
@@ -50,6 +51,12 @@ export const signInWithEmailPassword = async (email: string, pass: string) => {
   // Pull all cloud data down onto second device
   await pullCloudDataToLocal(credential.user.uid);
   return credential.user;
+};
+
+// Change Password for Signed-In User
+export const changeUserPassword = async (newPass: string) => {
+  if (!auth.currentUser) throw new Error('No account signed in to update password.');
+  await updatePassword(auth.currentUser, newPass);
 };
 
 // Push all local Dexie items to Cloud

@@ -318,7 +318,7 @@ export const OnboardingWizard: React.FC = () => {
                     </div>
                   </button>
 
-                  {/* Option B: Add Your Goals */}
+                  {/* Option B: Create Account & Add Goals */}
                   <button
                     type="button"
                     onClick={() => setWizardMode('add_goals')}
@@ -329,15 +329,15 @@ export const OnboardingWizard: React.FC = () => {
                       <Target className="w-7 h-7" />
                     </div>
                     <div className="space-y-1">
-                      <div className="font-extrabold text-xl">Add Your Goals</div>
+                      <div className="font-extrabold text-xl">Create Account & Goals</div>
                       <div className="text-xs font-semibold opacity-90 leading-relaxed">
-                        Start clean, set up your password & create your custom activity goal.
+                        Create your username & password to set up Cloud Sync and start clean.
                       </div>
                     </div>
                   </button>
                 </div>
 
-                {/* Option C: Link Existing 2nd Phone / Sign In */}
+                {/* Option C: Sign In to Existing Account */}
                 <div className="pt-2 border-t border-slate-300 dark:border-slate-700">
                   <button
                     type="button"
@@ -345,7 +345,7 @@ export const OnboardingWizard: React.FC = () => {
                     className="w-full py-3.5 px-4 bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-700 text-[#0F4C45] dark:text-white font-bold rounded-2xl border border-slate-300 dark:border-slate-600 text-sm shadow-sm transition-all flex items-center justify-center gap-2 tap-target"
                   >
                     <Smartphone className="w-4 h-4" />
-                    Link 2nd Device / Sign In
+                    Use Existing Login / Link Device
                   </button>
                 </div>
               </div>

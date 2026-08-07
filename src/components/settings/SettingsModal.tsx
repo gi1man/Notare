@@ -7,7 +7,11 @@ import { exportDataCSV, exportDataJSON } from '../../db/exportData';
 import { FontScaleOption, ThemeMode } from '../../types';
 import { CategoryManagerModal } from '../categories/CategoryManagerModal';
 import { DeviceMigrationModal } from './DeviceMigrationModal';
-import { registerWithEmailPassword, signInWithEmailPassword } from '../../db/firestoreSync';
+import {
+  registerWithEmailPassword,
+  signInWithEmailPassword,
+  changeUserPassword,
+} from '../../db/firestoreSync';
 import {
   Settings,
   Eye,
@@ -27,6 +31,7 @@ import {
   FileCode,
   UserCheck,
   Smartphone,
+  KeyRound,
 } from 'lucide-react';
 
 export const SettingsModal: React.FC = () => {
@@ -38,6 +43,7 @@ export const SettingsModal: React.FC = () => {
   // Email & Custom Password Sync State
   const [syncEmail, setSyncEmail] = useState('');
   const [syncPassword, setSyncPassword] = useState('');
+  const [newPasswordInput, setNewPasswordInput] = useState('');
   const [authStatus, setAuthStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({
     type: null,
     message: '',
@@ -84,6 +90,29 @@ export const SettingsModal: React.FC = () => {
       setAuthStatus({
         type: 'error',
         message: err.message || 'Failed to sign in. Please verify your email and password.',
+      });
+    } finally {
+      setIsAuthSubmitting(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPasswordInput || isAuthSubmitting) return;
+    setIsAuthSubmitting(true);
+    setAuthStatus({ type: null, message: '' });
+
+    try {
+      await changeUserPassword(newPasswordInput);
+      setAuthStatus({
+        type: 'success',
+        message: 'Account password updated successfully!',
+      });
+      setNewPasswordInput('');
+    } catch (err: any) {
+      setAuthStatus({
+        type: 'error',
+        message: err.message || 'Failed to change password. Please ensure you are signed in.',
       });
     } finally {
       setIsAuthSubmitting(false);
@@ -189,6 +218,32 @@ export const SettingsModal: React.FC = () => {
               <Smartphone className="w-4 h-4 text-[#8FA99B]" />
               Link 2nd Device / Sign In
             </button>
+          </div>
+
+          {/* Change Password Section */}
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <KeyRound className="w-4 h-4 text-amber-500" /> Change Account Password
+            </label>
+
+            <div className="flex gap-2">
+              <input
+                type="password"
+                placeholder="Enter new password..."
+                value={newPasswordInput}
+                onChange={(e) => setNewPasswordInput(e.target.value)}
+                className="flex-1 p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 font-semibold text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+              />
+
+              <button
+                type="button"
+                onClick={handleChangePassword}
+                disabled={isAuthSubmitting || !newPasswordInput}
+                className="py-3 px-4 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 shrink-0 tap-target"
+              >
+                Update Password
+              </button>
+            </div>
           </div>
         </form>
       </div>
