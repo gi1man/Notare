@@ -21,6 +21,8 @@ import {
   Home,
   UserCheck,
   LogIn,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 interface CategoryTemplate {
@@ -75,6 +77,7 @@ export const OnboardingWizard: React.FC = () => {
   // Auth Inputs
   const [accountEmail, setAccountEmail] = useState<string>('');
   const [accountPassword, setAccountPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -350,14 +353,24 @@ export const OnboardingWizard: React.FC = () => {
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                       Password (Letters, Numbers & Special Characters)
                     </label>
-                    <input
-                      type="password"
-                      required
-                      placeholder={authTab === 'create' ? 'Choose a password...' : 'Enter password...'}
-                      value={accountPassword}
-                      onChange={(e) => setAccountPassword(e.target.value)}
-                      className="w-full p-3.5 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#0F4C45]"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        placeholder={authTab === 'create' ? 'Choose a password...' : 'Enter password...'}
+                        value={accountPassword}
+                        onChange={(e) => setAccountPassword(e.target.value)}
+                        className="w-full p-3.5 pr-12 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#0F4C45]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                        title={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
                   </div>
 
                   {authError && (

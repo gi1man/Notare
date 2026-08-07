@@ -15,6 +15,7 @@ import {
 import {
   Settings,
   Eye,
+  EyeOff,
   Type,
   Sun,
   Moon,
@@ -43,7 +44,9 @@ export const SettingsModal: React.FC = () => {
   // Email & Custom Password Sync State
   const [syncEmail, setSyncEmail] = useState('');
   const [syncPassword, setSyncPassword] = useState('');
+  const [showSyncPassword, setShowSyncPassword] = useState(false);
   const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [authStatus, setAuthStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({
     type: null,
     message: '',
@@ -177,13 +180,23 @@ export const SettingsModal: React.FC = () => {
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               Custom Password (Letters, Numbers, Special Chars)
             </label>
-            <input
-              type="password"
-              placeholder="e.g. MyPass#2026!"
-              value={syncPassword}
-              onChange={(e) => setSyncPassword(e.target.value)}
-              className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 font-semibold text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500"
-            />
+            <div className="relative">
+              <input
+                type={showSyncPassword ? 'text' : 'password'}
+                placeholder="e.g. MyPass#2026!"
+                value={syncPassword}
+                onChange={(e) => setSyncPassword(e.target.value)}
+                className="w-full p-3 pr-10 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 font-semibold text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500"
+              />
+              <button
+                type="button"
+                onClick={() => setShowSyncPassword(!showSyncPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                title={showSyncPassword ? 'Hide password' : 'Show password'}
+              >
+                {showSyncPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           {authStatus.message && (
@@ -227,13 +240,23 @@ export const SettingsModal: React.FC = () => {
             </label>
 
             <div className="flex gap-2">
-              <input
-                type="password"
-                placeholder="Enter new password..."
-                value={newPasswordInput}
-                onChange={(e) => setNewPasswordInput(e.target.value)}
-                className="flex-1 p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 font-semibold text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
-              />
+              <div className="relative flex-1">
+                <input
+                  type={showNewPassword ? 'text' : 'password'}
+                  placeholder="Enter new password..."
+                  value={newPasswordInput}
+                  onChange={(e) => setNewPasswordInput(e.target.value)}
+                  className="w-full p-3 pr-10 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 font-semibold text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  title={showNewPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
 
               <button
                 type="button"
