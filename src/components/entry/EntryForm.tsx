@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Entry, DualNumberValue } from '../../types';
 import { db } from '../../db';
 import { syncEntryToCloud } from '../../db/firestoreSync';
+import { recordAnonymousCommunityMetric } from '../../db/communityTelemetry';
 import { ChevronLeft, Mic } from 'lucide-react';
 
 export const EntryForm: React.FC = () => {
@@ -169,6 +170,19 @@ export const EntryForm: React.FC = () => {
       await syncEntryToCloud(newEntry);
     } catch (err) {
       console.warn('Cloud sync entry warning (saved locally):', err);
+    }
+
+    try {
+      if (selectedCategory) {
+        await recordAnonymousCommunityMetric(
+          selectedCategory.name,
+          selectedSubcategory.name,
+          typeof parsedValue === 'number' ? parsedValue : 1,
+          settings.telemetry_opt_in
+        );
+      }
+    } catch (err) {
+      console.warn('Anonymous telemetry metric warning:', err);
     }
 
     triggerUndoToast(

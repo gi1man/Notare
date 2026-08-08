@@ -287,6 +287,29 @@ export const SettingsModal: React.FC = () => {
           <Eye className="w-5 h-5 text-sky-600" /> Display & Accessibility
         </h3>
 
+        {/* Anonymous Community Telemetry Opt-In Toggle */}
+        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-4">
+          <div>
+            <div className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+              <Globe className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+              Contribute Anonymous Community Stats
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+              Allow un-linkable numerical category totals (e.g. +1 walk) to contribute to aggregate community benchmarks. Zero notes, names, or user IDs are stored.
+            </div>
+          </div>
+
+          <label className="relative inline-flex items-center cursor-pointer shrink-0 tap-target">
+            <input
+              type="checkbox"
+              checked={settings.telemetry_opt_in}
+              onChange={(e) => updateSettings({ telemetry_opt_in: e.target.checked })}
+              className="sr-only peer"
+            />
+            <div className="w-14 h-8 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-sky-600"></div>
+          </label>
+        </div>
+
         {/* High Accessibility Preset Toggle */}
         <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-4">
           <div>

@@ -10,6 +10,7 @@ import {
   DEFAULT_COMMUNITY_INSIGHTS,
   CommunityInsightItem,
 } from '../../db/insightsEngine';
+import { fetchCommunityTotals, generateGeminiCommunityInsights } from '../../db/communityTelemetry';
 import {
   Sparkles,
   TrendingUp,
@@ -102,13 +103,21 @@ export const InsightsView: React.FC = () => {
   }, [entries, categories]);
 
   // Handle Refreshing Community Discoveries
-  const handleRefreshCommunity = () => {
+  const handleRefreshCommunity = async () => {
     setIsRefreshing(true);
-    setTimeout(() => {
-      // Shuffle / reload insights
+    try {
+      const totals = await fetchCommunityTotals();
+      const aiGenerated = await generateGeminiCommunityInsights(totals);
+      if (aiGenerated && aiGenerated.length > 0) {
+        setCommunityInsights(aiGenerated);
+      } else {
+        setCommunityInsights([...DEFAULT_COMMUNITY_INSIGHTS].reverse());
+      }
+    } catch {
       setCommunityInsights([...DEFAULT_COMMUNITY_INSIGHTS].reverse());
+    } finally {
       setIsRefreshing(false);
-    }, 600);
+    }
   };
 
   return (
