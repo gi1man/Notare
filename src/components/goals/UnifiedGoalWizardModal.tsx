@@ -5,7 +5,8 @@ import { Category, Goal, GoalFrequency } from '../../types';
 import { clearDemoData } from '../../db/dummyDataGenerator';
 import { syncCategoryToCloud, syncGoalToCloud } from '../../db/firestoreSync';
 import { IconRenderer } from '../common/IconRenderer';
-import { Target, X, Check, Sparkles } from 'lucide-react';
+import { IconPicker } from '../common/IconPicker';
+import { Target, X, Check, Sparkles, Palette } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 interface CategoryTemplate {
@@ -77,11 +78,14 @@ export const UnifiedGoalWizardModal: React.FC<UnifiedGoalWizardModalProps> = ({
       ? initialCategory.name
       : ''
   );
-  const [catIcon] = useState<string>('Folder');
+  const [catIcon, setCatIcon] = useState<string>('Folder');
 
   const [itemName, setItemName] = useState<string>(
     initialCategory ? '' : CATEGORY_TEMPLATES[0].suggestedItems[0]
   );
+  const [itemIcon, setItemIcon] = useState<string>('Activity');
+  const [showItemIconPicker, setShowItemIconPicker] = useState<boolean>(false);
+
   const [targetVal, setTargetVal] = useState<number>(30);
   const [targetUnit, setTargetUnit] = useState<string>('mins');
   const [frequency, setFrequency] = useState<GoalFrequency>('daily');
@@ -143,7 +147,7 @@ export const UnifiedGoalWizardModal: React.FC<UnifiedGoalWizardModalProps> = ({
         id: subId,
         parent_id: parentCatId,
         name: finalItemName,
-        icon: 'Activity',
+        icon: itemIcon || (selectedTemplate ? selectedTemplate.icon : 'Activity'),
         value_schema: {
           type: targetUnit === 'glasses' || targetUnit === 'times' || targetUnit === 'steps' ? 'count' : 'duration',
           unit: targetUnit || 'mins',
@@ -238,8 +242,8 @@ export const UnifiedGoalWizardModal: React.FC<UnifiedGoalWizardModalProps> = ({
               })}
             </div>
 
-            {/* Custom Category Input */}
-            <div className="pt-1">
+            {/* Custom Category Input & Icon Picker */}
+            <div className="pt-1 space-y-3">
               <input
                 type="text"
                 placeholder="Or type custom category name (e.g. Gardening, Sailing)..."
@@ -250,13 +254,23 @@ export const UnifiedGoalWizardModal: React.FC<UnifiedGoalWizardModalProps> = ({
                 }}
                 className="w-full p-3.5 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#0F4C45]"
               />
+
+              {!selectedTemplate && (
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 space-y-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Palette className="w-4 h-4 text-[#0F4C45] dark:text-sky-400" />
+                    Custom Category Icon
+                  </label>
+                  <IconPicker selectedIcon={catIcon} onSelectIcon={setCatIcon} />
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Step 2: Activity Item Name */}
+          {/* Step 2: Activity Item Name & Icon Picker */}
           <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-700">
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              2. Name Your Activity Item
+              2. Name Your Activity Item & Choose Icon
             </label>
 
             {selectedTemplate && selectedTemplate.suggestedItems.length > 0 && (
@@ -278,14 +292,43 @@ export const UnifiedGoalWizardModal: React.FC<UnifiedGoalWizardModalProps> = ({
               </div>
             )}
 
-            <input
-              type="text"
-              required
-              placeholder="e.g. Walking, Green Tea, Book Reading..."
-              value={itemName}
-              onChange={(e) => setItemName(e.target.value)}
-              className="w-full p-3.5 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#0F4C45]"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                required
+                placeholder="e.g. Walking, Green Tea, Book Reading..."
+                value={itemName}
+                onChange={(e) => setItemName(e.target.value)}
+                className="flex-1 p-3.5 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#0F4C45]"
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowItemIconPicker(!showItemIconPicker)}
+                className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-[#0F4C45] dark:text-sky-400 font-bold hover:bg-slate-100 flex items-center gap-2 shrink-0 tap-target"
+                title="Change Activity Icon"
+              >
+                <IconRenderer name={itemIcon} className="w-5 h-5" />
+                <span className="text-xs">Icon</span>
+              </button>
+            </div>
+
+            {/* Collapsible Activity Item Icon Picker */}
+            {showItemIconPicker && (
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 space-y-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Palette className="w-4 h-4 text-[#0F4C45] dark:text-sky-400" />
+                  Select Activity Item Icon
+                </label>
+                <IconPicker
+                  selectedIcon={itemIcon}
+                  onSelectIcon={(ic) => {
+                    setItemIcon(ic);
+                    setShowItemIconPicker(false);
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           {/* Step 3: Target Amount & Frequency */}
