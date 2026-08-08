@@ -39,11 +39,9 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
 
     setIsSubmitting(true);
     try {
-      await clearDemoData();
-      await updateSettings({ is_demo_mode: false, onboarding_completed: true });
       let parentCatId = selectedCatId;
 
-      // Create new top-level category if selected 'new'
+      // 1. Create new top-level category or preserve existing category as non-demo
       if (selectedCatId === 'new') {
         const catName = customCatName.trim() || 'Custom Category';
         parentCatId = `cat-${Date.now()}`;
@@ -59,9 +57,20 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
         };
         await db.categories.put(newCat);
         await syncCategoryToCloud(newCat);
+      } else {
+        const existingCat = await db.categories.get(selectedCatId);
+        if (existingCat) {
+          const preservedCat: Category = {
+            ...existingCat,
+            is_demo: false,
+            updated_at: new Date().toISOString(),
+          };
+          await db.categories.put(preservedCat);
+          await syncCategoryToCloud(preservedCat);
+        }
       }
 
-      // Create Subcategory Activity Item
+      // 2. Create Subcategory Activity Item
       const subId = `sub-${Date.now()}`;
       const newSub: Category = {
         id: subId,
@@ -79,7 +88,7 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
       await db.categories.put(newSub);
       await syncCategoryToCloud(newSub);
 
-      // Create Goal
+      // 3. Create Goal
       const newGoal: Goal = {
         id: `goal-${Date.now()}`,
         subcategory_id: subId,
@@ -92,6 +101,10 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
       };
       await db.goals.put(newGoal);
       await syncGoalToCloud(newGoal);
+
+      // 4. Purge unused demo data & turn off demo mode
+      await clearDemoData();
+      await updateSettings({ is_demo_mode: false, onboarding_completed: true });
 
       onClose();
     } catch (err) {
