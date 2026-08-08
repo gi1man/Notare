@@ -26,12 +26,14 @@ import {
   Globe,
   RefreshCw,
   Bot,
+  Lock,
+  Settings,
 } from 'lucide-react';
 
 import { useApp } from '../../context/AppContext';
 
 export const InsightsView: React.FC = () => {
-  const { settings } = useApp();
+  const { settings, setActiveTab } = useApp();
   const categories = useLiveQuery(
     () => db.categories.filter((c) => !c.deleted_at && (settings.is_demo_mode || !c.is_demo)).toArray(),
     [settings.is_demo_mode]
@@ -174,45 +176,77 @@ export const InsightsView: React.FC = () => {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleRefreshCommunity}
-            disabled={isRefreshing}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-xs font-bold hover:bg-sky-100 dark:hover:bg-sky-900/80 transition-all shrink-0 tap-target"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {settings.telemetry_opt_in && (
+              <button
+                type="button"
+                onClick={handleRefreshCommunity}
+                disabled={isRefreshing}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-xs font-bold hover:bg-sky-100 dark:hover:bg-sky-900/80 transition-all tap-target"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            )}
+            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+              settings.telemetry_opt_in
+                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+            }`}>
+              {settings.telemetry_opt_in ? 'Active ✓' : 'Locked 🔒'}
+            </span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {communityInsights.map((item) => (
-            <div
-              key={item.id}
-              className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/80 space-y-2.5 flex flex-col justify-between"
-            >
-              <div className="space-y-1.5">
-                {item.categoryTag && (
-                  <span className="inline-block px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-900/60 text-sky-800 dark:text-sky-300 font-extrabold text-[10px] uppercase tracking-wider">
-                    {item.categoryTag}
-                  </span>
-                )}
-                <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                  {item.title}
-                </h4>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                  {item.description}
-                </p>
-              </div>
-
-              <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800">
-                <span className="text-xs font-black text-sky-600 dark:text-sky-400">
-                  {item.stat}
-                </span>
-              </div>
+        {!settings.telemetry_opt_in ? (
+          /* Reciprocity Lock Teaser Card */
+          <div className="p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 space-y-3">
+            <div className="flex items-center gap-2 text-amber-900 dark:text-amber-300 font-extrabold text-base">
+              <Lock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              <span>Unlock Community Insights & Benchmarks</span>
             </div>
-          ))}
-        </div>
+            <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed font-medium">
+              You can see community habit benchmarks and AI-synthesized stories by opting in to share your anonymized numerical totals. It is <strong>100% private</strong> — only un-linkable numerical totals (e.g. +1 walk) are shared, with zero personal notes, names, or user IDs stored.
+            </p>
+            <button
+              type="button"
+              onClick={() => setActiveTab('settings')}
+              className="py-3 px-5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 tap-target"
+            >
+              <Settings className="w-4 h-4" />
+              Enable Anonymous Community Stats in Settings ⚙️
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {communityInsights.map((item) => (
+              <div
+                key={item.id}
+                className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/80 space-y-2.5 flex flex-col justify-between"
+              >
+                <div className="space-y-1.5">
+                  {item.categoryTag && (
+                    <span className="inline-block px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-900/60 text-sky-800 dark:text-sky-300 font-extrabold text-[10px] uppercase tracking-wider">
+                      {item.categoryTag}
+                    </span>
+                  )}
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                    {item.title}
+                  </h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                    {item.description}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800">
+                  <span className="text-xs font-black text-sky-600 dark:text-sky-400">
+                    {item.stat}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 📈 "This Week vs. Last Week" Comparison Grid */}
