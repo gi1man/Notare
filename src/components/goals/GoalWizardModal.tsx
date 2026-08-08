@@ -5,13 +5,53 @@ import { Category, Goal, GoalFrequency } from '../../types';
 import { clearDemoData } from '../../db/dummyDataGenerator';
 import { syncCategoryToCloud, syncGoalToCloud } from '../../db/firestoreSync';
 import { IconPicker } from '../common/IconPicker';
-import { Target, X, Plus } from 'lucide-react';
+import { Target, X, Plus, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 interface GoalWizardModalProps {
   initialCategory?: Category | null;
   onClose: () => void;
 }
+
+interface CategoryTemplate {
+  id: string;
+  name: string;
+  icon: string;
+  suggestedItems: string[];
+}
+
+const CATEGORY_TEMPLATES: CategoryTemplate[] = [
+  {
+    id: 'cat-fitness',
+    name: 'Fitness & Health',
+    icon: 'Dumbbell',
+    suggestedItems: ['Walking', 'Resistance Training', 'Running', 'Sleep'],
+  },
+  {
+    id: 'cat-nutrition',
+    name: 'Nutrition',
+    icon: 'Apple',
+    suggestedItems: ['Water Intake', 'Balanced Meals', 'Snacks'],
+  },
+  {
+    id: 'cat-learning',
+    name: 'Mind & Learning',
+    icon: 'Brain',
+    suggestedItems: ['Book Reading', 'Crosswords', 'Meditation'],
+  },
+  {
+    id: 'cat-home',
+    name: 'Home & Hobbies',
+    icon: 'Home',
+    suggestedItems: ['Gardening', 'DIY Repairs', 'Crafts'],
+  },
+  {
+    id: 'cat-business',
+    name: 'Business & Work',
+    icon: 'Briefcase',
+    suggestedItems: ['Deep Work', 'Meetings', 'Study'],
+  },
+];
 
 export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategory, onClose }) => {
   const { updateSettings } = useApp();
@@ -22,6 +62,7 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
     []
   );
 
+  const [selectedTemplate, setSelectedTemplate] = useState<CategoryTemplate | null>(null);
   const [selectedCatId, setSelectedCatId] = useState<string>(initialCategory ? initialCategory.id : 'new');
   const [customCatName, setCustomCatName] = useState<string>('');
   const [catIcon, setCatIcon] = useState<string>('Folder');
@@ -33,6 +74,16 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
   const [frequency, setFrequency] = useState<GoalFrequency>('daily');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
+  const handleSelectTemplate = (tpl: CategoryTemplate) => {
+    setSelectedTemplate(tpl);
+    setSelectedCatId('new');
+    setCustomCatName(tpl.name);
+    setCatIcon(tpl.icon);
+    if (tpl.suggestedItems.length > 0 && !itemName) {
+      setItemName(tpl.suggestedItems[0]);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!itemName.trim() || isSubmitting) return;
@@ -43,20 +94,26 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
 
       // 1. Create new top-level category or preserve existing category as non-demo
       if (selectedCatId === 'new') {
-        const catName = customCatName.trim() || 'Custom Category';
-        parentCatId = `cat-${Date.now()}`;
-        const newCat: Category = {
-          id: parentCatId,
-          parent_id: null,
-          name: catName,
-          icon: catIcon,
-          pinned: false,
-          sort_order: (categories?.length || 0) + 1,
-          is_demo: false,
-          updated_at: new Date().toISOString(),
-        };
-        await db.categories.put(newCat);
-        await syncCategoryToCloud(newCat);
+        const catName = selectedTemplate ? selectedTemplate.name : customCatName.trim() || 'Custom Category';
+        parentCatId = selectedTemplate ? selectedTemplate.id : `cat-${Date.now()}`;
+        
+        let existingParent = await db.categories.get(parentCatId);
+        if (!existingParent) {
+          const newCat: Category = {
+            id: parentCatId,
+            parent_id: null,
+            name: catName,
+            icon: catIcon || 'Folder',
+            pinned: false,
+            sort_order: (categories?.length || 0) + 1,
+            is_demo: false,
+            updated_at: new Date().toISOString(),
+          };
+          await db.categories.put(newCat);
+          await syncCategoryToCloud(newCat);
+        } else {
+          await db.categories.put({ ...existingParent, is_demo: false, updated_at: new Date().toISOString() });
+        }
       } else {
         const existingCat = await db.categories.get(selectedCatId);
         if (existingCat) {
@@ -114,6 +171,8 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
     }
   };
 
+  const activeSuggestedItems = selectedTemplate ? selectedTemplate.suggestedItems : [];
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-[#F5F1E8] dark:bg-slate-800 rounded-3xl p-6 max-w-lg w-full shadow-2xl border border-notare-parchment-dark dark:border-slate-700 space-y-6 max-h-[90vh] overflow-y-auto">
@@ -133,14 +192,47 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Category Selector */}
+          {/* 🌟 Suggested Category Templates */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              Suggested Categories
+            </label>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {CATEGORY_TEMPLATES.map((tpl) => {
+                const isSelected = selectedTemplate?.id === tpl.id;
+                return (
+                  <button
+                    key={tpl.id}
+                    type="button"
+                    onClick={() => handleSelectTemplate(tpl)}
+                    className={`p-3 rounded-2xl border font-bold text-xs flex items-center gap-2 transition-all tap-target text-left ${
+                      isSelected
+                        ? 'border-[#0F4C45] bg-[#0F4C45] text-white dark:bg-sky-600 dark:border-sky-600 shadow-md'
+                        : 'border-slate-300 bg-white text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 hover:border-slate-400'
+                    }`}
+                  >
+                    <span>{tpl.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Category Dropdown & Custom Category Input */}
           <div className="space-y-2">
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              1. Choose Category
+              Category Choice
             </label>
             <select
               value={selectedCatId}
-              onChange={(e) => setSelectedCatId(e.target.value)}
+              onChange={(e) => {
+                setSelectedCatId(e.target.value);
+                if (e.target.value !== 'new') {
+                  setSelectedTemplate(null);
+                }
+              }}
               className="w-full p-3.5 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-[#0F4C45]"
             >
               <option value="new">✨ + Create New Category...</option>
@@ -152,8 +244,8 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
             </select>
           </div>
 
-          {/* New Category Name (if 'new' selected) */}
-          {selectedCatId === 'new' && (
+          {/* Custom Category Details (if 'new' selected and no template) */}
+          {selectedCatId === 'new' && !selectedTemplate && (
             <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 space-y-3">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                 New Category Name & Icon
@@ -178,7 +270,7 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
           {/* Goal Activity Item Name */}
           <div className="space-y-2">
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              2. Activity Item Name
+              Activity Item Name
             </label>
             <input
               type="text"
@@ -188,12 +280,37 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
               onChange={(e) => setItemName(e.target.value)}
               className="w-full p-3.5 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-[#0F4C45]"
             />
+
+            {/* Suggested Activity Item Chips */}
+            {activeSuggestedItems.length > 0 && (
+              <div className="pt-1 space-y-1">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Suggested Activities for {selectedTemplate?.name}:
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {activeSuggestedItems.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => setItemName(item)}
+                      className={`px-3 py-1 rounded-xl text-xs font-bold transition-all border tap-target ${
+                        itemName === item
+                          ? 'bg-[#0F4C45] text-white border-[#0F4C45] dark:bg-sky-600'
+                          : 'bg-white text-slate-700 border-slate-300 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-700 hover:border-slate-400'
+                      }`}
+                    >
+                      + {item}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Target Goal Values */}
           <div className="space-y-3 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700">
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              3. Set Target Goal
+              Target Goal Details
             </label>
 
             <div className="grid grid-cols-2 gap-3">
