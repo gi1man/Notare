@@ -82,6 +82,7 @@ export const OnboardingWizard: React.FC = () => {
   const [accountEmail, setAccountEmail] = useState<string>('');
   const [accountPassword, setAccountPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [telemetryOptIn, setTelemetryOptIn] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -113,6 +114,8 @@ export const OnboardingWizard: React.FC = () => {
     setAuthError('');
 
     try {
+      await updateSettings({ telemetry_opt_in: telemetryOptIn });
+
       if (authTab === 'create') {
         // Create new account in Firebase
         await registerWithEmailPassword(accountEmail.trim(), accountPassword);
@@ -383,6 +386,21 @@ export const OnboardingWizard: React.FC = () => {
                       {authError}
                     </div>
                   )}
+
+                  {/* Anonymous Community Telemetry Opt-In Checkbox */}
+                  <label className="flex items-start gap-3 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 cursor-pointer tap-target">
+                    <input
+                      type="checkbox"
+                      checked={telemetryOptIn}
+                      onChange={(e) => setTelemetryOptIn(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 rounded text-[#0F4C45] focus:ring-[#0F4C45]"
+                    />
+                    <div className="text-xs font-medium text-slate-700 dark:text-slate-300 leading-relaxed text-left">
+                      <strong className="text-slate-900 dark:text-white font-bold">Contribute Anonymous Community Stats (Optional)</strong>
+                      <br />
+                      Allow un-linkable numerical totals (e.g. +1 walk) to contribute to aggregate community benchmarks. Zero notes, names, or user IDs are stored.
+                    </div>
+                  </label>
 
                   <button
                     type="submit"
