@@ -5,6 +5,7 @@ import { Category, Goal, GoalFrequency } from '../../types';
 import { syncCategoryToCloud, syncGoalToCloud } from '../../db/firestoreSync';
 import { IconPicker } from '../common/IconPicker';
 import { Target, X, Plus } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 
 interface GoalWizardModalProps {
   initialCategory?: Category | null;
@@ -12,13 +13,15 @@ interface GoalWizardModalProps {
 }
 
 export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategory, onClose }) => {
+  const { updateSettings } = useApp();
+
   // Existing parent categories
   const categories = useLiveQuery(
     () => db.categories.filter((c) => c.parent_id === null && !c.deleted_at).toArray(),
     []
   );
 
-  const [selectedCatId, setSelectedCatId] = useState<string>(initialCategory?.id || 'new');
+  const [selectedCatId, setSelectedCatId] = useState<string>(initialCategory ? initialCategory.id : 'new');
   const [customCatName, setCustomCatName] = useState<string>('');
   const [catIcon, setCatIcon] = useState<string>('Folder');
 
@@ -35,6 +38,7 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
 
     setIsSubmitting(true);
     try {
+      await updateSettings({ is_demo_mode: false, onboarding_completed: true });
       let parentCatId = selectedCatId;
 
       // Create new top-level category if selected 'new'
