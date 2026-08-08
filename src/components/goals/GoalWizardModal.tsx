@@ -13,40 +13,40 @@ interface GoalWizardModalProps {
   onClose: () => void;
 }
 
-interface CategoryTemplate {
-  id: string;
+interface DefaultCategoryTemplate {
+  key: string;
   name: string;
   icon: string;
   suggestedItems: string[];
 }
 
-const CATEGORY_TEMPLATES: CategoryTemplate[] = [
+const DEFAULT_CATEGORIES: DefaultCategoryTemplate[] = [
   {
-    id: 'cat-fitness',
+    key: 'tpl-cat-fitness',
     name: 'Fitness & Health',
     icon: 'Dumbbell',
     suggestedItems: ['Walking', 'Resistance Training', 'Running', 'Sleep'],
   },
   {
-    id: 'cat-nutrition',
+    key: 'tpl-cat-nutrition',
     name: 'Nutrition',
     icon: 'Apple',
     suggestedItems: ['Water Intake', 'Balanced Meals', 'Snacks'],
   },
   {
-    id: 'cat-learning',
+    key: 'tpl-cat-learning',
     name: 'Mind & Learning',
     icon: 'Brain',
     suggestedItems: ['Book Reading', 'Crosswords', 'Meditation'],
   },
   {
-    id: 'cat-home',
+    key: 'tpl-cat-home',
     name: 'Home & Hobbies',
     icon: 'Home',
     suggestedItems: ['Gardening', 'DIY Repairs', 'Crafts'],
   },
   {
-    id: 'cat-business',
+    key: 'tpl-cat-business',
     name: 'Business & Work',
     icon: 'Briefcase',
     suggestedItems: ['Deep Work', 'Meetings', 'Study'],
@@ -62,25 +62,33 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
     []
   );
 
-  const [selectedTemplate, setSelectedTemplate] = useState<CategoryTemplate | null>(null);
-  const [selectedCatId, setSelectedCatId] = useState<string>(initialCategory ? initialCategory.id : 'new');
+  // Dropdown selection state
+  const [selectedKey, setSelectedKey] = useState<string>(
+    initialCategory ? `existing-${initialCategory.id}` : 'tpl-cat-fitness'
+  );
+
   const [customCatName, setCustomCatName] = useState<string>('');
   const [catIcon, setCatIcon] = useState<string>('Folder');
 
-  const [itemName, setItemName] = useState<string>('');
+  const [itemName, setItemName] = useState<string>('Walking');
   const [itemIcon] = useState<string>('Activity');
   const [targetVal, setTargetVal] = useState<number>(30);
   const [targetUnit, setTargetUnit] = useState<string>('mins');
   const [frequency, setFrequency] = useState<GoalFrequency>('daily');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const handleSelectTemplate = (tpl: CategoryTemplate) => {
-    setSelectedTemplate(tpl);
-    setSelectedCatId('new');
-    setCustomCatName(tpl.name);
-    setCatIcon(tpl.icon);
-    if (tpl.suggestedItems.length > 0 && !itemName) {
-      setItemName(tpl.suggestedItems[0]);
+  // Find active template if a default category is selected
+  const activeTemplate = DEFAULT_CATEGORIES.find((t) => t.key === selectedKey);
+
+  const handleDropdownChange = (key: string) => {
+    setSelectedKey(key);
+    const tpl = DEFAULT_CATEGORIES.find((t) => t.key === key);
+    if (tpl) {
+      setCustomCatName(tpl.name);
+      setCatIcon(tpl.icon);
+      if (tpl.suggestedItems.length > 0) {
+        setItemName(tpl.suggestedItems[0]);
+      }
     }
   };
 
@@ -90,41 +98,41 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
 
     setIsSubmitting(true);
     try {
-      let parentCatId = selectedCatId;
+      let parentCatId = `cat-${Date.now()}`;
+      let finalCatName = customCatName.trim() || 'Custom Category';
+      let finalCatIcon = catIcon || 'Folder';
 
-      // 1. Create new top-level category or preserve existing category as non-demo
-      if (selectedCatId === 'new') {
-        const catName = selectedTemplate ? selectedTemplate.name : customCatName.trim() || 'Custom Category';
-        parentCatId = selectedTemplate ? selectedTemplate.id : `cat-${Date.now()}`;
-        
-        let existingParent = await db.categories.get(parentCatId);
-        if (!existingParent) {
-          const newCat: Category = {
-            id: parentCatId,
-            parent_id: null,
-            name: catName,
-            icon: catIcon || 'Folder',
-            pinned: false,
-            sort_order: (categories?.length || 0) + 1,
-            is_demo: false,
-            updated_at: new Date().toISOString(),
-          };
-          await db.categories.put(newCat);
-          await syncCategoryToCloud(newCat);
-        } else {
-          await db.categories.put({ ...existingParent, is_demo: false, updated_at: new Date().toISOString() });
-        }
+      if (activeTemplate) {
+        parentCatId = activeTemplate.key;
+        finalCatName = activeTemplate.name;
+        finalCatIcon = activeTemplate.icon;
+      } else if (selectedKey.startsWith('existing-')) {
+        parentCatId = selectedKey.replace('existing-', '');
+      }
+
+      // 1. Create or preserve top-level parent category
+      const existingParent = await db.categories.get(parentCatId);
+      if (!existingParent) {
+        const newCat: Category = {
+          id: parentCatId,
+          parent_id: null,
+          name: finalCatName,
+          icon: finalCatIcon,
+          pinned: false,
+          sort_order: (categories?.length || 0) + 1,
+          is_demo: false,
+          updated_at: new Date().toISOString(),
+        };
+        await db.categories.put(newCat);
+        await syncCategoryToCloud(newCat);
       } else {
-        const existingCat = await db.categories.get(selectedCatId);
-        if (existingCat) {
-          const preservedCat: Category = {
-            ...existingCat,
-            is_demo: false,
-            updated_at: new Date().toISOString(),
-          };
-          await db.categories.put(preservedCat);
-          await syncCategoryToCloud(preservedCat);
-        }
+        const preservedCat: Category = {
+          ...existingParent,
+          is_demo: false,
+          updated_at: new Date().toISOString(),
+        };
+        await db.categories.put(preservedCat);
+        await syncCategoryToCloud(preservedCat);
       }
 
       // 2. Create Subcategory Activity Item
@@ -159,7 +167,7 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
       await db.goals.put(newGoal);
       await syncGoalToCloud(newGoal);
 
-      // 4. Purge unused demo data & turn off demo mode
+      // 4. Purge unused sample demo data & turn off demo mode
       await clearDemoData();
       await updateSettings({ is_demo_mode: false, onboarding_completed: true });
 
@@ -171,7 +179,7 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
     }
   };
 
-  const activeSuggestedItems = selectedTemplate ? selectedTemplate.suggestedItems : [];
+  const activeSuggestedItems = activeTemplate ? activeTemplate.suggestedItems : [];
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -180,7 +188,7 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
         <div className="flex items-center justify-between border-b border-slate-300 dark:border-slate-700 pb-3">
           <div className="flex items-center gap-2 text-[#0F4C45] dark:text-white font-extrabold text-xl font-serif-logo">
             <Target className="w-6 h-6 text-sky-600 dark:text-sky-400" />
-            <span>Create New Activity Goal</span>
+            <span>Create Activity Goal</span>
           </div>
           <button
             type="button"
@@ -192,68 +200,50 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* 🌟 Suggested Category Templates */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              Suggested Categories
-            </label>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {CATEGORY_TEMPLATES.map((tpl) => {
-                const isSelected = selectedTemplate?.id === tpl.id;
-                return (
-                  <button
-                    key={tpl.id}
-                    type="button"
-                    onClick={() => handleSelectTemplate(tpl)}
-                    className={`p-3 rounded-2xl border font-bold text-xs flex items-center gap-2 transition-all tap-target text-left ${
-                      isSelected
-                        ? 'border-[#0F4C45] bg-[#0F4C45] text-white dark:bg-sky-600 dark:border-sky-600 shadow-md'
-                        : 'border-slate-300 bg-white text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 hover:border-slate-400'
-                    }`}
-                  >
-                    <span>{tpl.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Category Dropdown & Custom Category Input */}
+          {/* Category Dropdown Pulldown */}
           <div className="space-y-2">
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Category Choice
+              1. Select Category (Pulldown)
             </label>
             <select
-              value={selectedCatId}
-              onChange={(e) => {
-                setSelectedCatId(e.target.value);
-                if (e.target.value !== 'new') {
-                  setSelectedTemplate(null);
-                }
-              }}
-              className="w-full p-3.5 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-[#0F4C45]"
+              value={selectedKey}
+              onChange={(e) => handleDropdownChange(e.target.value)}
+              className="w-full p-3.5 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-extrabold text-slate-900 dark:text-white focus:ring-2 focus:ring-[#0F4C45]"
             >
-              <option value="new">✨ + Create New Category...</option>
-              {categories?.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  📁 {cat.name}
-                </option>
-              ))}
+              <optgroup label="✨ Default Categories (with Default Icons)">
+                <option value="tpl-cat-fitness">🏋️ Fitness & Health (Icon: Dumbbell)</option>
+                <option value="tpl-cat-nutrition">🍏 Nutrition (Icon: Apple)</option>
+                <option value="tpl-cat-learning">🧠 Mind & Learning (Icon: Brain)</option>
+                <option value="tpl-cat-home">🏡 Home & Hobbies (Icon: Home)</option>
+                <option value="tpl-cat-business">💼 Business & Work (Icon: Briefcase)</option>
+              </optgroup>
+
+              {categories && categories.length > 0 && (
+                <optgroup label="📁 Your Created Categories">
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={`existing-${cat.id}`}>
+                      📁 {cat.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+
+              <optgroup label="➕ Custom">
+                <option value="custom">+ Create Custom Category...</option>
+              </optgroup>
             </select>
           </div>
 
-          {/* Custom Category Details (if 'new' selected and no template) */}
-          {selectedCatId === 'new' && !selectedTemplate && (
+          {/* Custom Category Fields (if 'custom' selected) */}
+          {selectedKey === 'custom' && (
             <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 space-y-3">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                New Category Name & Icon
+                Custom Category Name & Icon
               </label>
               <input
                 type="text"
                 required
-                placeholder="e.g. Health, Hobbies, Work..."
+                placeholder="e.g. Gardening, Spiritual, Finances..."
                 value={customCatName}
                 onChange={(e) => setCustomCatName(e.target.value)}
                 className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-sm font-medium text-slate-900 dark:text-white"
@@ -270,7 +260,7 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
           {/* Goal Activity Item Name */}
           <div className="space-y-2">
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Activity Item Name
+              2. Activity Item Name
             </label>
             <input
               type="text"
@@ -284,8 +274,9 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
             {/* Suggested Activity Item Chips */}
             {activeSuggestedItems.length > 0 && (
               <div className="pt-1 space-y-1">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Suggested Activities for {selectedTemplate?.name}:
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  Suggested Activities for {activeTemplate?.name}:
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {activeSuggestedItems.map((item) => (
@@ -310,7 +301,7 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
           {/* Target Goal Values */}
           <div className="space-y-3 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700">
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Target Goal Details
+              3. Target Goal Details
             </label>
 
             <div className="grid grid-cols-2 gap-3">
