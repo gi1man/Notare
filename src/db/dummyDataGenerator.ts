@@ -214,6 +214,13 @@ export const clearDemoData = async () => {
     await db.goals.bulkDelete(demoGoalIds);
   }
 
+  // Delete all demo categories
+  const allCategories = await db.categories.toArray();
+  const demoCatIds = allCategories.filter((c) => c.is_demo).map((c) => c.id);
+  if (demoCatIds.length > 0) {
+    await db.categories.bulkDelete(demoCatIds);
+  }
+
   // Turn off is_demo_mode flag
   const existingSettings = await db.meta.get('settings');
   if (existingSettings) {

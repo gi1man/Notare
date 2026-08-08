@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { Category, Goal, GoalFrequency } from '../../types';
+import { clearDemoData } from '../../db/dummyDataGenerator';
 import { syncCategoryToCloud, syncGoalToCloud } from '../../db/firestoreSync';
 import { IconPicker } from '../common/IconPicker';
 import { Target, X, Plus } from 'lucide-react';
@@ -17,7 +18,7 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
 
   // Existing parent categories
   const categories = useLiveQuery(
-    () => db.categories.filter((c) => c.parent_id === null && !c.deleted_at).toArray(),
+    () => db.categories.filter((c) => c.parent_id === null && !c.deleted_at && !c.is_demo).toArray(),
     []
   );
 
@@ -38,6 +39,7 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
 
     setIsSubmitting(true);
     try {
+      await clearDemoData();
       await updateSettings({ is_demo_mode: false, onboarding_completed: true });
       let parentCatId = selectedCatId;
 
