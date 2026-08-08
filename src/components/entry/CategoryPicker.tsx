@@ -14,7 +14,7 @@ export const CategoryPicker: React.FC = () => {
   // Fetch active top-level categories from Dexie (filtering user-created only when not in demo mode)
   const categories = useLiveQuery(async () => {
     const list = await db.categories
-      .filter((c) => c.parent_id === null && !c.deleted_at && (settings.is_demo_mode || !c.is_demo))
+      .filter((c) => (!c.parent_id || c.parent_id === null) && !c.deleted_at && (settings.is_demo_mode || !c.is_demo))
       .toArray();
 
     // Sort: Pinned first, then by sort_order

@@ -128,12 +128,12 @@ export const GoalWizardModal: React.FC<GoalWizardModalProps> = ({ initialCategor
               onChange={(e) => setSelectedCatId(e.target.value)}
               className="w-full p-3.5 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-[#0F4C45]"
             >
+              <option value="new">✨ + Create New Category...</option>
               {categories?.map((cat) => (
                 <option key={cat.id} value={cat.id}>
-                  {cat.name}
+                  📁 {cat.name}
                 </option>
               ))}
-              <option value="new">+ Create New Category...</option>
             </select>
           </div>
 
