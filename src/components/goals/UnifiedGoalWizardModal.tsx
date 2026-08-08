@@ -331,50 +331,80 @@ export const UnifiedGoalWizardModal: React.FC<UnifiedGoalWizardModalProps> = ({
             )}
           </div>
 
-          {/* Step 3: Target Amount & Frequency */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200 dark:border-slate-700">
+          {/* Step 3: Target Amount, Unit & Frequency */}
+          <div className="space-y-4 pt-2 border-t border-slate-200 dark:border-slate-700">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              3. Target Goal Amount & Unit
+            </label>
+
+            {/* Default Unit Chips */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                3. Target Amount ({targetUnit})
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={targetVal}
-                  onChange={(e) => setTargetVal(Number(e.target.value))}
-                  className="w-full p-3 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 font-bold text-lg text-slate-900 dark:text-white"
-                />
-                <input
-                  type="text"
-                  placeholder="unit"
-                  value={targetUnit}
-                  onChange={(e) => setTargetUnit(e.target.value)}
-                  className="w-24 p-3 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-900 dark:text-white"
-                />
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                Quick Unit Chips (or type below):
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {['mins', 'hours', 'glasses', 'times', 'steps', 'pages', 'miles', 'km'].map((u) => (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => setTargetUnit(u)}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all border tap-target ${
+                      targetUnit === u
+                        ? 'bg-[#0F4C45] text-white border-[#0F4C45] dark:bg-sky-600'
+                        : 'bg-white text-slate-700 border-slate-300 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-700 hover:border-slate-400'
+                    }`}
+                  >
+                    {u}
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Frequency
-              </label>
-              <div className="flex rounded-2xl border border-slate-300 dark:border-slate-600 overflow-hidden bg-white dark:bg-slate-900 p-1">
-                {(['daily', 'weekly', 'monthly'] as GoalFrequency[]).map((f) => (
-                  <button
-                    key={f}
-                    type="button"
-                    onClick={() => setFrequency(f)}
-                    className={`flex-1 py-2 font-bold text-xs capitalize rounded-xl transition-all tap-target ${
-                      frequency === f
-                        ? 'bg-[#0F4C45] text-white dark:bg-sky-600'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Target Amount & Unit
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={targetVal}
+                    onChange={(e) => setTargetVal(Number(e.target.value))}
+                    className="w-24 p-3 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 font-bold text-lg text-slate-900 dark:text-white"
+                  />
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. mins, laps..."
+                    value={targetUnit}
+                    onChange={(e) => setTargetUnit(e.target.value)}
+                    className="flex-1 p-3 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Frequency
+                </label>
+                <div className="flex rounded-2xl border border-slate-300 dark:border-slate-600 overflow-hidden bg-white dark:bg-slate-900 p-1">
+                  {(['daily', 'weekly', 'monthly'] as GoalFrequency[]).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setFrequency(f)}
+                      className={`flex-1 py-2 font-bold text-xs capitalize rounded-xl transition-all tap-target ${
+                        frequency === f
+                          ? 'bg-[#0F4C45] text-white dark:bg-sky-600'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
