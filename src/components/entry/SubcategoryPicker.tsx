@@ -5,7 +5,7 @@ import { useApp } from '../../context/AppContext';
 import { Category } from '../../types';
 import { IconRenderer } from '../common/IconRenderer';
 import { GoalEditorModal } from '../goals/GoalEditorModal';
-import { GoalWizardModal } from '../goals/GoalWizardModal';
+import { UnifiedGoalWizardModal } from '../goals/UnifiedGoalWizardModal';
 import { ChevronLeft, Plus } from 'lucide-react';
 
 export const SubcategoryPicker: React.FC = () => {
@@ -95,7 +95,7 @@ export const SubcategoryPicker: React.FC = () => {
 
       {/* Unified Goal Creation Wizard Modal */}
       {showAddGoalModal && (
-        <GoalWizardModal
+        <UnifiedGoalWizardModal
           initialCategory={selectedCategory}
           onClose={() => setShowAddGoalModal(false)}
         />
