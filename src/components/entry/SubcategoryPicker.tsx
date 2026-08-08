@@ -9,7 +9,7 @@ import { GoalWizardModal } from '../goals/GoalWizardModal';
 import { ChevronLeft, Plus } from 'lucide-react';
 
 export const SubcategoryPicker: React.FC = () => {
-  const { settings, selectedCategory, setSelectedSubcategory, setEntryStep, isDebounced, triggerDebounce } = useApp();
+  const { selectedCategory, setSelectedSubcategory, setEntryStep, isDebounced, triggerDebounce } = useApp();
   const [showAddGoalModal, setShowAddGoalModal] = useState(false);
   const [goalModalSub, setGoalModalSub] = useState<Category | null>(null);
 
@@ -19,11 +19,11 @@ export const SubcategoryPicker: React.FC = () => {
     const list = await db.categories
       .where('parent_id')
       .equals(selectedCategory.id)
-      .filter((c) => !c.deleted_at && (settings.is_demo_mode || !c.is_demo))
+      .filter((c) => !c.deleted_at)
       .toArray();
 
     return list.sort((a, b) => a.sort_order - b.sort_order);
-  }, [selectedCategory?.id, settings.is_demo_mode]);
+  }, [selectedCategory?.id]);
 
   const handleSelectSubcategory = (sub: Category) => {
     if (isDebounced) return;

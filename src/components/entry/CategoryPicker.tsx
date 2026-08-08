@@ -8,13 +8,13 @@ import { GoalWizardModal } from '../goals/GoalWizardModal';
 import { Plus } from 'lucide-react';
 
 export const CategoryPicker: React.FC = () => {
-  const { settings, setSelectedCategory, setEntryStep, isDebounced, triggerDebounce } = useApp();
+  const { setSelectedCategory, setEntryStep, isDebounced, triggerDebounce } = useApp();
   const [showAddGoalModal, setShowAddGoalModal] = useState(false);
 
   // Fetch active top-level categories from Dexie (filtering user-created only when not in demo mode)
   const categories = useLiveQuery(async () => {
     const list = await db.categories
-      .filter((c) => (!c.parent_id || c.parent_id === null) && !c.deleted_at && (settings.is_demo_mode || !c.is_demo))
+      .filter((c) => (!c.parent_id || c.parent_id === null) && !c.deleted_at)
       .toArray();
 
     // Sort: Pinned first, then by sort_order
@@ -23,7 +23,7 @@ export const CategoryPicker: React.FC = () => {
       if (!a.pinned && b.pinned) return 1;
       return a.sort_order - b.sort_order;
     });
-  }, [settings.is_demo_mode]);
+  }, []);
 
   const handleSelectCategory = (cat: Category) => {
     if (isDebounced) return;
