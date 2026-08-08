@@ -47,6 +47,18 @@ export const CATEGORY_TEMPLATES: CategoryTemplate[] = [
     icon: 'Briefcase',
     suggestedItems: ['Deep Work', 'Meetings', 'Study'],
   },
+  {
+    id: 'cat-creativity',
+    name: 'Creativity',
+    icon: 'Palette',
+    suggestedItems: ['Painting', 'Writing', 'Music Practice', 'Sketching'],
+  },
+  {
+    id: 'cat-social',
+    name: 'Social Life',
+    icon: 'Smile',
+    suggestedItems: ['Family Time', 'Phone Call', 'Date Night', 'Catch Up'],
+  },
 ];
 
 interface UnifiedGoalWizardModalProps {
