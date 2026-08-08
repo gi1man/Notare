@@ -39,8 +39,12 @@ export const getCurrentUser = () => currentUser;
 export const registerWithEmailPassword = async (email: string, pass: string) => {
   const credential = await createUserWithEmailAndPassword(auth, email, pass);
   currentUser = credential.user;
-  // Push initial local data up to newly created account
-  await pushAllLocalDataToCloud(credential.user.uid);
+  try {
+    // Push initial local data up to newly created account
+    await pushAllLocalDataToCloud(credential.user.uid);
+  } catch (syncErr) {
+    console.warn('Initial cloud sync queued for newly created user:', syncErr);
+  }
   return credential.user;
 };
 
@@ -48,8 +52,12 @@ export const registerWithEmailPassword = async (email: string, pass: string) => 
 export const signInWithEmailPassword = async (email: string, pass: string) => {
   const credential = await signInWithEmailAndPassword(auth, email, pass);
   currentUser = credential.user;
-  // Pull all cloud data down onto second device
-  await pullCloudDataToLocal(credential.user.uid);
+  try {
+    // Pull all cloud data down onto second device
+    await pullCloudDataToLocal(credential.user.uid);
+  } catch (syncErr) {
+    console.warn('Cloud data pull deferred:', syncErr);
+  }
   return credential.user;
 };
 
