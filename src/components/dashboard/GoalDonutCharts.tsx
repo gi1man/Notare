@@ -34,6 +34,7 @@ export const GoalDonutCharts: React.FC<GoalDonutChartsProps> = ({ goals, entries
   const now = new Date();
   const startOfTodayTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
   const startOfWeekTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0).getTime();
+  const startOfMonthTime = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).getTime();
 
   // Helper to extract numeric value from entry
   const getEntryNumericValue = (entry: Entry): number => {
@@ -63,6 +64,7 @@ export const GoalDonutCharts: React.FC<GoalDonutChartsProps> = ({ goals, entries
   // 1. Filter goals strictly by frequency
   const dailyGoals = goals.filter((g) => g.frequency === 'daily');
   const weeklyGoals = goals.filter((g) => g.frequency === 'weekly');
+  const monthlyGoals = goals.filter((g) => g.frequency === 'monthly');
 
   // Compute Daily Progress ONLY for daily goals
   const dailyProgressList: GoalItemProgress[] = dailyGoals.map((goal) => {
@@ -122,6 +124,35 @@ export const GoalDonutCharts: React.FC<GoalDonutChartsProps> = ({ goals, entries
     };
   });
 
+  // Compute Monthly Progress ONLY for monthly goals
+  const monthlyProgressList: GoalItemProgress[] = monthlyGoals.map((goal) => {
+    const subcat = categoryMap.get(goal.subcategory_id)!;
+    const parentCat = subcat ? categoryMap.get(subcat.parent_id || '') || null : null;
+
+    const loggedThisMonth = entries
+      .filter(
+        (e) =>
+          e.subcategory_id === goal.subcategory_id &&
+          !e.deleted_at &&
+          new Date(e.occurred_at).getTime() >= startOfMonthTime
+      )
+      .reduce((sum, e) => sum + getEntryNumericValue(e), 0);
+
+    const targetValue = goal.target_value;
+    const completionPct = computeIndividualPct(loggedThisMonth, targetValue, goal.direction);
+    const isCompleted = completionPct >= 100;
+
+    return {
+      goal,
+      subcategory: subcat,
+      parentCategory: parentCat,
+      loggedValue: loggedThisMonth,
+      targetValue,
+      completionPct,
+      isCompleted,
+    };
+  });
+
   // Calculate Overall Average Completion Percentage across goals
   const dailyAveragePct =
     dailyProgressList.length > 0
@@ -133,12 +164,22 @@ export const GoalDonutCharts: React.FC<GoalDonutChartsProps> = ({ goals, entries
       ? Math.round(weeklyProgressList.reduce((acc, curr) => acc + curr.completionPct, 0) / weeklyProgressList.length)
       : 0;
 
+  const monthlyAveragePct =
+    monthlyProgressList.length > 0
+      ? Math.round(monthlyProgressList.reduce((acc, curr) => acc + curr.completionPct, 0) / monthlyProgressList.length)
+      : 0;
+
   // Split Completed vs In-Progress/Due items for detailed lists
   const dailyCompletedItems = dailyProgressList.filter((p) => p.isCompleted);
   const dailyDueItems = dailyProgressList.filter((p) => !p.isCompleted);
 
   const weeklyCompletedItems = weeklyProgressList.filter((p) => p.isCompleted);
   const weeklyDueItems = weeklyProgressList.filter((p) => !p.isCompleted);
+
+  const monthlyCompletedItems = monthlyProgressList.filter((p) => p.isCompleted);
+  const monthlyDueItems = monthlyProgressList.filter((p) => !p.isCompleted);
+
+  const hasAnyGoals = dailyGoals.length > 0 || weeklyGoals.length > 0 || monthlyGoals.length > 0;
 
   // SVG Donut Component
   const RenderDonutSVG = ({
@@ -224,201 +265,272 @@ export const GoalDonutCharts: React.FC<GoalDonutChartsProps> = ({ goals, entries
         </h3>
       </div>
 
-      {/* Side-by-Side Donut Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Card 1: Today's Goals Donut */}
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center space-y-4">
-          <div className="text-center">
-            <h4 className="font-bold text-lg text-slate-900 dark:text-white">Daily Goals</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Average % completion across daily goals</p>
-          </div>
-
-          <RenderDonutSVG
-            averagePct={dailyAveragePct}
-            totalCount={dailyProgressList.length}
-            onSegmentClick={(type) =>
-              setSelectedSegment({
-                title: "Daily Goals",
-                type,
-                averagePct: dailyAveragePct,
-                items: type === 'completed' ? dailyCompletedItems : dailyDueItems,
-              })
-            }
-          />
-
-          {/* Segment Legend Buttons */}
-          <div className="flex justify-center gap-3 text-xs font-bold w-full pt-2">
-            <button
-              onClick={() =>
-                setSelectedSegment({
-                  title: "Today's Goals",
-                  type: 'completed',
-                  averagePct: dailyAveragePct,
-                  items: dailyCompletedItems,
-                })
-              }
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 hover:bg-emerald-100 transition-colors"
-            >
-              <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
-              Completed ({dailyCompletedItems.length})
-            </button>
-
-            <button
-              onClick={() =>
-                setSelectedSegment({
-                  title: "Today's Goals",
-                  type: 'due',
-                  averagePct: dailyAveragePct,
-                  items: dailyDueItems,
-                })
-              }
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 hover:bg-rose-100 transition-colors"
-            >
-              <span className="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
-              In Progress ({dailyDueItems.length})
-            </button>
-          </div>
+      {!hasAnyGoals ? (
+        <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 text-center space-y-2">
+          <PieChart className="w-10 h-10 text-slate-400 mx-auto" />
+          <h4 className="font-bold text-base text-slate-800 dark:text-slate-200">No Goals Set</h4>
+          <p className="text-xs text-slate-500 max-w-xs mx-auto">
+            Set daily, weekly, or monthly goals to see your performance donut charts!
+          </p>
         </div>
+      ) : (
+        /* Donut Cards Grid (Only rendered if matching goals exist) */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Daily Goals Donut (Only displayed if daily goals exist) */}
+          {dailyGoals.length > 0 && (
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center space-y-4">
+              <div className="text-center">
+                <h4 className="font-bold text-lg text-slate-900 dark:text-white">Daily Goals</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Average % completion across daily goals</p>
+              </div>
 
-        {/* Card 2: This Week's Goals Donut */}
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center space-y-4">
-          <div className="text-center">
-            <h4 className="font-bold text-lg text-slate-900 dark:text-white">This Week's Goals</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Average % completion across weekly goals</p>
-          </div>
+              <RenderDonutSVG
+                averagePct={dailyAveragePct}
+                totalCount={dailyProgressList.length}
+                onSegmentClick={(type) =>
+                  setSelectedSegment({
+                    title: "Daily Goals",
+                    type,
+                    averagePct: dailyAveragePct,
+                    items: type === 'completed' ? dailyCompletedItems : dailyDueItems,
+                  })
+                }
+              />
 
-          <RenderDonutSVG
-            averagePct={weeklyAveragePct}
-            totalCount={weeklyProgressList.length}
-            onSegmentClick={(type) =>
-              setSelectedSegment({
-                title: "Weekly Goals",
-                type,
-                averagePct: weeklyAveragePct,
-                items: type === 'completed' ? weeklyCompletedItems : weeklyDueItems,
-              })
-            }
-          />
+              {/* Segment Legend Buttons */}
+              <div className="flex justify-center gap-3 text-xs font-bold w-full pt-2">
+                <button
+                  onClick={() =>
+                    setSelectedSegment({
+                      title: "Daily Goals",
+                      type: 'completed',
+                      averagePct: dailyAveragePct,
+                      items: dailyCompletedItems,
+                    })
+                  }
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 hover:bg-emerald-100 transition-colors"
+                >
+                  <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+                  Completed ({dailyCompletedItems.length})
+                </button>
 
-          {/* Segment Legend Buttons */}
-          <div className="flex justify-center gap-3 text-xs font-bold w-full pt-2">
-            <button
-              onClick={() =>
-                setSelectedSegment({
-                  title: "This Week's Goals",
-                  type: 'completed',
-                  averagePct: weeklyAveragePct,
-                  items: weeklyCompletedItems,
-                })
-              }
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 hover:bg-emerald-100 transition-colors"
-            >
-              <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
-              Completed ({weeklyCompletedItems.length})
-            </button>
+                <button
+                  onClick={() =>
+                    setSelectedSegment({
+                      title: "Daily Goals",
+                      type: 'due',
+                      averagePct: dailyAveragePct,
+                      items: dailyDueItems,
+                    })
+                  }
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 hover:bg-rose-100 transition-colors"
+                >
+                  <span className="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
+                  In Progress ({dailyDueItems.length})
+                </button>
+              </div>
+            </div>
+          )}
 
-            <button
-              onClick={() =>
-                setSelectedSegment({
-                  title: "This Week's Goals",
-                  type: 'due',
-                  averagePct: weeklyAveragePct,
-                  items: weeklyDueItems,
-                })
-              }
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 hover:bg-rose-100 transition-colors"
-            >
-              <span className="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
-              In Progress ({weeklyDueItems.length})
-            </button>
-          </div>
+          {/* Weekly Goals Donut (Only displayed if weekly goals exist) */}
+          {weeklyGoals.length > 0 && (
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center space-y-4">
+              <div className="text-center">
+                <h4 className="font-bold text-lg text-slate-900 dark:text-white">Weekly Goals</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Average % completion across weekly goals</p>
+              </div>
+
+              <RenderDonutSVG
+                averagePct={weeklyAveragePct}
+                totalCount={weeklyProgressList.length}
+                onSegmentClick={(type) =>
+                  setSelectedSegment({
+                    title: "Weekly Goals",
+                    type,
+                    averagePct: weeklyAveragePct,
+                    items: type === 'completed' ? weeklyCompletedItems : weeklyDueItems,
+                  })
+                }
+              />
+
+              {/* Segment Legend Buttons */}
+              <div className="flex justify-center gap-3 text-xs font-bold w-full pt-2">
+                <button
+                  onClick={() =>
+                    setSelectedSegment({
+                      title: "Weekly Goals",
+                      type: 'completed',
+                      averagePct: weeklyAveragePct,
+                      items: weeklyCompletedItems,
+                    })
+                  }
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 hover:bg-emerald-100 transition-colors"
+                >
+                  <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+                  Completed ({weeklyCompletedItems.length})
+                </button>
+
+                <button
+                  onClick={() =>
+                    setSelectedSegment({
+                      title: "Weekly Goals",
+                      type: 'due',
+                      averagePct: weeklyAveragePct,
+                      items: weeklyDueItems,
+                    })
+                  }
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 hover:bg-rose-100 transition-colors"
+                >
+                  <span className="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
+                  In Progress ({weeklyDueItems.length})
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Monthly Goals Donut (Only displayed if monthly goals exist) */}
+          {monthlyGoals.length > 0 && (
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center space-y-4">
+              <div className="text-center">
+                <h4 className="font-bold text-lg text-slate-900 dark:text-white">Monthly Goals</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Average % completion across monthly goals</p>
+              </div>
+
+              <RenderDonutSVG
+                averagePct={monthlyAveragePct}
+                totalCount={monthlyProgressList.length}
+                onSegmentClick={(type) =>
+                  setSelectedSegment({
+                    title: "Monthly Goals",
+                    type,
+                    averagePct: monthlyAveragePct,
+                    items: type === 'completed' ? monthlyCompletedItems : monthlyDueItems,
+                  })
+                }
+              />
+
+              {/* Segment Legend Buttons */}
+              <div className="flex justify-center gap-3 text-xs font-bold w-full pt-2">
+                <button
+                  onClick={() =>
+                    setSelectedSegment({
+                      title: "Monthly Goals",
+                      type: 'completed',
+                      averagePct: monthlyAveragePct,
+                      items: monthlyCompletedItems,
+                    })
+                  }
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 hover:bg-emerald-100 transition-colors"
+                >
+                  <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+                  Completed ({monthlyCompletedItems.length})
+                </button>
+
+                <button
+                  onClick={() =>
+                    setSelectedSegment({
+                      title: "Monthly Goals",
+                      type: 'due',
+                      averagePct: monthlyAveragePct,
+                      items: monthlyDueItems,
+                    })
+                  }
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 hover:bg-rose-100 transition-colors"
+                >
+                  <span className="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
+                  In Progress ({monthlyDueItems.length})
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
-      {/* Segment Detail Pop-up Modal */}
+      {/* Segment Breakdown Modal */}
       {selectedSegment && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-700 space-y-5 max-h-[85vh] overflow-y-auto">
-            {/* Modal Header */}
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
               <div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  {selectedSegment.type === 'completed' ? (
-                    <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-                  ) : (
-                    <AlertCircle className="w-6 h-6 text-rose-500" />
-                  )}
-                  {selectedSegment.title} — {selectedSegment.type === 'completed' ? 'Completed Goals' : 'In Progress / Due Goals'}
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Overall Average Met: <strong className="text-sky-600 dark:text-sky-400">{selectedSegment.averagePct}%</strong>
+                <h4 className="font-extrabold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>{selectedSegment.title}</span>
+                  <span
+                    className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                      selectedSegment.type === 'completed'
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                        : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                    }`}
+                  >
+                    {selectedSegment.type === 'completed' ? 'Completed Goals' : 'In Progress / Due'}
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-500">
+                  Detailed status breakdown ({selectedSegment.items.length} items)
                 </p>
               </div>
 
               <button
                 onClick={() => setSelectedSegment(null)}
-                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* List of Goal Items with Individual Percent Completion */}
-            <div className="space-y-3">
-              {selectedSegment.items.length === 0 ? (
-                <div className="text-center py-6 text-slate-400 text-sm">
-                  No items in this segment!
-                </div>
-              ) : (
-                selectedSegment.items.map((item) => (
+            {selectedSegment.items.length === 0 ? (
+              <div className="text-center py-8 text-slate-400 text-xs font-semibold">
+                No items in this category.
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {selectedSegment.items.map((item) => (
                   <div
                     key={item.goal.id}
-                    className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 flex items-center justify-between gap-3"
+                    className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 flex items-center justify-between gap-3"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 rounded-lg bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300">
+                      <div className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200">
                         <IconRenderer
-                          name={item.subcategory?.icon || item.parentCategory?.icon || 'Activity'}
+                          name={item.subcategory?.icon || item.parentCategory?.icon || 'Target'}
                           className="w-5 h-5"
                         />
                       </div>
+
                       <div>
-                        <div className="font-bold text-base text-slate-900 dark:text-white">
-                          {item.subcategory?.name}
+                        <div className="font-bold text-sm text-slate-900 dark:text-white">
+                          {item.subcategory?.name || 'Goal Activity'}
                         </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">
-                          {item.parentCategory?.name} · {item.goal.direction === 'at_least' ? 'At Least (Encourage)' : 'At Most (Limit)'}
+                        <div className="text-[11px] font-semibold text-slate-500">
+                          {item.parentCategory?.name || 'Category'} • Target:{' '}
+                          <span className="font-bold text-slate-700 dark:text-slate-300">
+                            {item.targetValue} {item.subcategory?.value_schema?.unit || ''}
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="text-right space-y-1">
-                      <div className="text-sm font-black text-slate-900 dark:text-white">
-                        {item.loggedValue} / {item.targetValue} {item.goal.target_type === 'time' ? 'mins' : 'x'}
+                    <div className="text-right">
+                      <div
+                        className={`text-sm font-extrabold flex items-center justify-end gap-1 ${
+                          item.isCompleted ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
+                        }`}
+                      >
+                        {item.isCompleted ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4 text-amber-500" />
+                        )}
+                        <span>{item.completionPct}%</span>
                       </div>
-                      <div className="flex items-center justify-end gap-1.5">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold ${
-                            item.isCompleted
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
-                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
-                          }`}
-                        >
-                          {item.completionPct}% {item.isCompleted ? '✓ Met' : 'Progress'}
-                        </span>
+
+                      <div className="text-[11px] font-medium text-slate-500">
+                        Logged: <span className="font-bold">{item.loggedValue}</span> / {item.targetValue}
                       </div>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-
-            <button
-              onClick={() => setSelectedSegment(null)}
-              className="w-full py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-sm"
-            >
-              Close
-            </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
