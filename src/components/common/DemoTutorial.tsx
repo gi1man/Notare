@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useApp, ActiveTab } from '../../context/AppContext';
-import { db } from '../../db';
 import {
   Sparkles,
   ArrowRight,
@@ -9,7 +8,6 @@ import {
   Target,
   LayoutDashboard,
   History,
-  FolderPlus,
   Compass,
 } from 'lucide-react';
 
@@ -26,7 +24,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 1,
     tab: 'entry',
-    title: 'Step 1 of 6: Log Activity 🎯',
+    title: 'Step 1 of 5: Log Activity 🎯',
     description:
       'Log activities in 2 quick taps. Tap any category card on screen, then tap an activity button to record your time or count.',
     highlightText: 'Try it! Tap any category card on screen to log an activity.',
@@ -35,43 +33,34 @@ const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 2,
     tab: 'entry',
-    title: 'Step 2 of 6: Create New Category 📂',
+    title: 'Step 2 of 5: Goal Creation Wizard 🎯',
     description:
-      'Create custom categories for your health, hobbies, work, or daily routines with your own custom icons.',
-    highlightText: 'Try it! Tap the "+ Add Category" button in the top header.',
-    icon: <FolderPlus className="w-6 h-6 text-amber-400" />,
+      'Create categories, activity items, and target goals in 1 unified wizard! Pick from suggested templates, select custom icons, and choose default or custom units.',
+    highlightText: 'Try it! Tap the "+ Add Goal" button in the header to open the Goal Wizard.',
+    icon: <Compass className="w-6 h-6 text-amber-400" />,
   },
   {
     id: 3,
-    tab: 'entry',
-    title: 'Step 3 of 6: Set & Create Goals 🎯',
-    description:
-      'Set daily, weekly, or monthly target goals for any activity item to track your progress and build streaks.',
-    highlightText: 'Try it! Tap any category, then click "+ Add Goal" in the top header.',
-    icon: <Compass className="w-6 h-6 text-sky-400" />,
-  },
-  {
-    id: 4,
     tab: 'dashboard',
-    title: 'Step 4 of 6: Goal Dashboard 📊',
+    title: 'Step 3 of 5: Goal Dashboard & Streaks 📊',
     description:
       'The Reporting Dashboard displays your active goal streaks, completed daily/weekly/monthly targets, and progress donut charts.',
     highlightText: 'Goal progress rings turn solid green as you complete targets!',
     icon: <LayoutDashboard className="w-6 h-6 text-emerald-400" />,
   },
   {
-    id: 5,
+    id: 4,
     tab: 'insights',
-    title: 'Step 5 of 6: Smart AI Insights 💡',
+    title: 'Step 4 of 5: Smart AI Insights 💡',
     description:
       'Notare automatically analyzes correlations between your activities, like how morning walks boost sleep quality or focus.',
     highlightText: 'Private, localized pattern discovery tailored to your health.',
     icon: <Sparkles className="w-6 h-6 text-amber-400" />,
   },
   {
-    id: 6,
+    id: 5,
     tab: 'history',
-    title: 'Step 6 of 6: Activity History 📜',
+    title: 'Step 5 of 5: Activity History 📜',
     description:
       'Search, filter, or review all your past logged activities, voice transcripts, and notes anytime.',
     highlightText: 'Filter by category or search voice notes instantly.',
@@ -83,8 +72,6 @@ export const DemoTutorial: React.FC = () => {
   const {
     settings,
     setActiveTab,
-    setEntryStep,
-    setSelectedCategory,
     resetToCategoryPicker,
   } = useApp();
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
@@ -96,20 +83,7 @@ export const DemoTutorial: React.FC = () => {
     setActiveTab(step.tab);
 
     if (step.id === 1 || step.id === 2) {
-      // Top-level Log Activity category picker (showing + Add Category button)
       resetToCategoryPicker();
-    } else if (step.id === 3) {
-      // Subcategory picker (showing + Add Goal button inside a category)
-      setEntryStep('subcategory_picker');
-      const fitnessCat = await db.categories.get('cat-fitness');
-      if (fitnessCat) {
-        setSelectedCategory(fitnessCat);
-      } else {
-        const firstTopCat = await db.categories
-          .filter((c) => c.parent_id === null && !c.deleted_at)
-          .first();
-        if (firstTopCat) setSelectedCategory(firstTopCat);
-      }
     }
   };
 
@@ -156,7 +130,7 @@ export const DemoTutorial: React.FC = () => {
   return (
     <div className="fixed bottom-6 right-4 left-4 sm:left-auto sm:right-6 z-50 max-w-md w-full animate-in fade-in slide-in-from-bottom-5 duration-300">
       {/* Floating Tutorial Callout Card */}
-      <div className="bg-slate-900/95 text-white p-5 rounded-3xl shadow-2xl border-2 border-sky-500/60 backdrop-blur-md space-y-4">
+      <div className="bg-slate-900/95 text-[#F5F1E8] dark:text-white p-5 rounded-3xl shadow-2xl border-2 border-sky-500/60 backdrop-blur-md space-y-4">
         {/* Card Top: Icon, Step Title & Exit Button */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2.5">
