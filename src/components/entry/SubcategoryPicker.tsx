@@ -1,22 +1,17 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
-import { syncCategoryToCloud } from '../../db/firestoreSync';
 import { useApp } from '../../context/AppContext';
-import { Category, ValueSchemaType } from '../../types';
+import { Category } from '../../types';
 import { IconRenderer } from '../common/IconRenderer';
-import { IconPicker } from '../common/IconPicker';
 import { GoalEditorModal } from '../goals/GoalEditorModal';
-import { ChevronLeft, Plus, X } from 'lucide-react';
+import { GoalWizardModal } from '../goals/GoalWizardModal';
+import { ChevronLeft, Plus } from 'lucide-react';
 
 export const SubcategoryPicker: React.FC = () => {
   const { settings, selectedCategory, setSelectedSubcategory, setEntryStep, isDebounced, triggerDebounce } = useApp();
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddGoalModal, setShowAddGoalModal] = useState(false);
   const [goalModalSub, setGoalModalSub] = useState<Category | null>(null);
-  const [newSubName, setNewSubName] = useState('');
-  const [newSubIcon, setNewSubIcon] = useState('Activity');
-  const [schemaType, setSchemaType] = useState<ValueSchemaType>('duration');
-  const [schemaUnit, setSchemaUnit] = useState('mins');
 
   // Fetch subcategories for selected parent category
   const subcategories = useLiveQuery(async () => {
@@ -38,30 +33,6 @@ export const SubcategoryPicker: React.FC = () => {
     setEntryStep('entry_form');
   };
 
-  const handleCreateSubcategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedCategory || !newSubName.trim()) return;
-
-    const newSub: Category = {
-      id: `sub-${Date.now()}`,
-      parent_id: selectedCategory.id,
-      name: newSubName.trim(),
-      icon: newSubIcon,
-      value_schema: {
-        type: schemaType,
-        unit: schemaUnit.trim() || undefined,
-        dual_labels: schemaType === 'dual_number' ? ['Value 1', 'Value 2'] : undefined,
-      },
-      sort_order: (subcategories?.length || 0) + 1,
-      updated_at: new Date().toISOString(),
-    };
-
-    await db.categories.add(newSub);
-    await syncCategoryToCloud(newSub);
-    setNewSubName('');
-    setShowAddModal(false);
-  };
-
   if (!selectedCategory) return null;
 
   return (
@@ -77,8 +48,8 @@ export const SubcategoryPicker: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setShowAddModal(true)}
-          className="px-4 py-2.5 bg-[#0F4C45] text-[#F5F1E8] hover:bg-[#135c54] dark:bg-sky-900/60 dark:text-sky-300 dark:hover:bg-sky-900 font-bold text-sm rounded-xl shadow-sm flex items-center gap-1.5"
+          onClick={() => setShowAddGoalModal(true)}
+          className="px-4 py-2.5 bg-[#0F4C45] text-[#F5F1E8] hover:bg-[#135c54] dark:bg-sky-900/60 dark:text-sky-300 dark:hover:bg-sky-900 font-bold text-sm rounded-xl shadow-sm flex items-center gap-1.5 tap-target"
         >
           <Plus className="w-4 h-4 text-[#8FA99B] dark:text-sky-300" />
           Add Goal
@@ -114,7 +85,7 @@ export const SubcategoryPicker: React.FC = () => {
         })}
       </div>
 
-      {/* Goal Editor Modal */}
+      {/* Goal Editor Modal (for editing existing item goal) */}
       {goalModalSub && (
         <GoalEditorModal
           subcategory={goalModalSub}
@@ -122,96 +93,12 @@ export const SubcategoryPicker: React.FC = () => {
         />
       )}
 
-      {/* Add Subcategory Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#F5F1E8] dark:bg-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-300 dark:border-slate-700 space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-300 dark:border-slate-700 pb-3">
-              <h3 className="text-xl font-bold font-serif-logo text-[#0F4C45] dark:text-white">
-                Add to {selectedCategory.name}
-              </h3>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateSubcategory} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Item Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Walking, Pilates, Book Reading"
-                  value={newSubName}
-                  onChange={(e) => setNewSubName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Input Type
-                </label>
-                <select
-                  value={schemaType}
-                  onChange={(e) => setSchemaType(e.target.value as ValueSchemaType)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium"
-                >
-                  <option value="duration">Duration (e.g. Minutes, Hours)</option>
-                  <option value="count">Count / Reps (e.g. Times, Glasses)</option>
-                  <option value="rating">Rating (1-5 Stars)</option>
-                  <option value="boolean">Done / Not Done (Checkbox)</option>
-                  <option value="decimal">Decimal Number (e.g. Weight 165.5 lbs)</option>
-                  <option value="dual_number">Dual Number (e.g. Blood Pressure 120/80)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Unit Label (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. mins, reps, lbs"
-                  value={schemaUnit}
-                  onChange={(e) => setSchemaUnit(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Choose Icon
-                </label>
-                <IconPicker
-                  selectedIcon={newSubIcon}
-                  onSelectIcon={(icon) => setNewSubIcon(icon)}
-                />
-              </div>
-
-              <div className="flex gap-3 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-3 bg-[#0F4C45] dark:bg-sky-600 text-white hover:bg-[#135c54] dark:hover:bg-sky-700 font-bold rounded-xl shadow-md"
-                >
-                  Create Item
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {/* Unified Goal Creation Wizard Modal */}
+      {showAddGoalModal && (
+        <GoalWizardModal
+          initialCategory={selectedCategory}
+          onClose={() => setShowAddGoalModal(false)}
+        />
       )}
     </div>
   );

@@ -177,6 +177,7 @@ export const OnboardingWizard: React.FC = () => {
           icon: catIcon || 'Folder',
           pinned: true,
           sort_order: 1,
+          is_demo: false,
           updated_at: new Date().toISOString(),
         };
         await db.categories.put(parentCat);
@@ -192,6 +193,7 @@ export const OnboardingWizard: React.FC = () => {
         icon: 'Activity',
         value_schema: { type: 'duration', unit: targetUnit || 'mins' },
         sort_order: 1,
+        is_demo: false,
         updated_at: new Date().toISOString(),
       };
       await db.categories.put(newSub);
@@ -205,6 +207,7 @@ export const OnboardingWizard: React.FC = () => {
         direction: 'at_least',
         target_type: targetUnit === 'glasses' ? 'count' : 'time',
         target_value: Number(targetVal) || 1,
+        is_demo: false,
         updated_at: new Date().toISOString(),
       };
       await db.goals.put(newGoal);
