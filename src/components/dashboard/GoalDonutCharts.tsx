@@ -60,8 +60,12 @@ export const GoalDonutCharts: React.FC<GoalDonutChartsProps> = ({ goals, entries
     }
   };
 
-  // Compute Daily Progress for each Goal
-  const dailyProgressList: GoalItemProgress[] = goals.map((goal) => {
+  // 1. Filter goals strictly by frequency
+  const dailyGoals = goals.filter((g) => g.frequency === 'daily');
+  const weeklyGoals = goals.filter((g) => g.frequency === 'weekly');
+
+  // Compute Daily Progress ONLY for daily goals
+  const dailyProgressList: GoalItemProgress[] = dailyGoals.map((goal) => {
     const subcat = categoryMap.get(goal.subcategory_id)!;
     const parentCat = subcat ? categoryMap.get(subcat.parent_id || '') || null : null;
 
@@ -89,8 +93,8 @@ export const GoalDonutCharts: React.FC<GoalDonutChartsProps> = ({ goals, entries
     };
   });
 
-  // Compute Weekly Progress for each Goal
-  const weeklyProgressList: GoalItemProgress[] = goals.map((goal) => {
+  // Compute Weekly Progress ONLY for weekly goals
+  const weeklyProgressList: GoalItemProgress[] = weeklyGoals.map((goal) => {
     const subcat = categoryMap.get(goal.subcategory_id)!;
     const parentCat = subcat ? categoryMap.get(subcat.parent_id || '') || null : null;
 
@@ -103,8 +107,7 @@ export const GoalDonutCharts: React.FC<GoalDonutChartsProps> = ({ goals, entries
       )
       .reduce((sum, e) => sum + getEntryNumericValue(e), 0);
 
-    // Weekly target value calculation
-    const targetValue = goal.frequency === 'daily' ? goal.target_value * 7 : goal.target_value;
+    const targetValue = goal.target_value;
     const completionPct = computeIndividualPct(loggedThisWeek, targetValue, goal.direction);
     const isCompleted = completionPct >= 100;
 
@@ -119,7 +122,7 @@ export const GoalDonutCharts: React.FC<GoalDonutChartsProps> = ({ goals, entries
     };
   });
 
-  // Calculate Overall Average Completion Percentage across all goals
+  // Calculate Overall Average Completion Percentage across goals
   const dailyAveragePct =
     dailyProgressList.length > 0
       ? Math.round(dailyProgressList.reduce((acc, curr) => acc + curr.completionPct, 0) / dailyProgressList.length)
@@ -140,15 +143,17 @@ export const GoalDonutCharts: React.FC<GoalDonutChartsProps> = ({ goals, entries
   // SVG Donut Component
   const RenderDonutSVG = ({
     averagePct,
+    totalCount,
     onSegmentClick,
   }: {
     averagePct: number;
+    totalCount: number;
     onSegmentClick: (type: 'completed' | 'due') => void;
   }) => {
-    if (goals.length === 0) {
+    if (totalCount === 0) {
       return (
-        <div className="w-36 h-36 rounded-full border-4 border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs text-slate-400 font-bold">
-          No Goals Set
+        <div className="w-36 h-36 rounded-full border-4 border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs text-slate-400 font-bold text-center p-2">
+          No Goals
         </div>
       );
     }
@@ -224,15 +229,16 @@ export const GoalDonutCharts: React.FC<GoalDonutChartsProps> = ({ goals, entries
         {/* Card 1: Today's Goals Donut */}
         <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center space-y-4">
           <div className="text-center">
-            <h4 className="font-bold text-lg text-slate-900 dark:text-white">Today's Goals</h4>
+            <h4 className="font-bold text-lg text-slate-900 dark:text-white">Daily Goals</h4>
             <p className="text-xs text-slate-500 dark:text-slate-400">Average % completion across daily goals</p>
           </div>
 
           <RenderDonutSVG
             averagePct={dailyAveragePct}
+            totalCount={dailyProgressList.length}
             onSegmentClick={(type) =>
               setSelectedSegment({
-                title: "Today's Goals",
+                title: "Daily Goals",
                 type,
                 averagePct: dailyAveragePct,
                 items: type === 'completed' ? dailyCompletedItems : dailyDueItems,
@@ -283,9 +289,10 @@ export const GoalDonutCharts: React.FC<GoalDonutChartsProps> = ({ goals, entries
 
           <RenderDonutSVG
             averagePct={weeklyAveragePct}
+            totalCount={weeklyProgressList.length}
             onSegmentClick={(type) =>
               setSelectedSegment({
-                title: "This Week's Goals",
+                title: "Weekly Goals",
                 type,
                 averagePct: weeklyAveragePct,
                 items: type === 'completed' ? weeklyCompletedItems : weeklyDueItems,
