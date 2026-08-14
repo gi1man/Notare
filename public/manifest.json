@@ -4,8 +4,8 @@
   "description": "Frictionless, privacy-focused activity tracking for retirees.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0284c7",
+  "background_color": "#F5F1E8",
+  "theme_color": "#0F4C45",
   "icons": [
     {
       "src": "/icon-192.png",
