@@ -5,6 +5,7 @@ import { Category } from '../../types';
 import { IconRenderer } from '../common/IconRenderer';
 import { GoalEditorModal } from '../goals/GoalEditorModal';
 import { GoalDonutCharts } from './GoalDonutCharts';
+import { GroupedGoalPerformanceChart } from './GroupedGoalPerformanceChart';
 import { GoalOverviewSection } from './GoalOverviewSection';
 import { GoalTrendSection } from './GoalTrendSection';
 import { generateDummyData } from '../../db/dummyDataGenerator';
@@ -122,6 +123,13 @@ export const DashboardView: React.FC = () => {
       <GoalDonutCharts
         entries={entries || []}
         goals={goals || []}
+        categories={categories || []}
+      />
+
+      {/* 3-Level Grouped Goal Performance Breakdown Chart */}
+      <GroupedGoalPerformanceChart
+        goals={goals || []}
+        entries={entries || []}
         categories={categories || []}
       />
 
