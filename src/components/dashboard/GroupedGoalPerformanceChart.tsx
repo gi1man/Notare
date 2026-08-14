@@ -127,13 +127,8 @@ export const GroupedGoalPerformanceChart: React.FC<GroupedGoalPerformanceChartPr
     }));
   };
 
-  // Build the 3 Frequency Groups in order: Daily -> Weekly -> Monthly
+  // Order requested by user: 1. Weekly -> 2. Monthly -> 3. Daily
   const frequencyGroups: FrequencyGroup[] = [
-    {
-      frequency: 'daily',
-      label: 'Daily Goals',
-      categoryGroups: processGoalsForFrequency('daily', startOfTodayTime),
-    },
     {
       frequency: 'weekly',
       label: 'Weekly Goals',
@@ -146,19 +141,24 @@ export const GroupedGoalPerformanceChart: React.FC<GroupedGoalPerformanceChartPr
       caption: `Day ${currentDayOfMonth} of ${daysInCurrentMonth}`,
       categoryGroups: processGoalsForFrequency('monthly', startOfMonthTime),
     },
+    {
+      frequency: 'daily',
+      label: 'Daily Goals',
+      categoryGroups: processGoalsForFrequency('daily', startOfTodayTime),
+    },
   ].filter((fg) => fg.categoryGroups.length > 0);
 
   if (frequencyGroups.length === 0) {
-    return null; // Don't render if no goals exist
+    return null;
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm space-y-6">
-      {/* Title Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-4">
+    <div className="card-parchment p-6 rounded-2xl shadow-sm space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-notare-parchment-dark dark:border-slate-700 pb-4">
         <div>
           <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+            <BarChart3 className="w-6 h-6 text-[#0F4C45] dark:text-emerald-400" />
             Goal Performance Breakdown
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -171,36 +171,36 @@ export const GroupedGoalPerformanceChart: React.FC<GroupedGoalPerformanceChartPr
       <div className="space-y-8">
         {frequencyGroups.map((fg) => (
           <div key={fg.frequency} className="space-y-4">
-            {/* Frequency Group Header (Horizontal & Dynamic Caption) */}
-            <div className="flex items-center justify-between bg-slate-100 dark:bg-slate-900/80 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
+            {/* Frequency Header */}
+            <div className="flex items-center justify-between bg-notare-parchment-dark/70 dark:bg-slate-900 px-4 py-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700">
               <h4 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-wide">
-                <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <Calendar className="w-4 h-4 text-[#0F4C45] dark:text-emerald-400" />
                 <span>{fg.label}</span>
               </h4>
 
               {fg.caption && (
-                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-[#0F4C45]/10 text-[#0F4C45] dark:bg-emerald-950 dark:text-emerald-300">
                   {fg.caption}
                 </span>
               )}
             </div>
 
             {/* Parent Category Groups */}
-            <div className="space-y-5 pl-2 sm:pl-4">
+            <div className="space-y-5 pl-1 sm:pl-3">
               {fg.categoryGroups.map((cg, idx) => (
                 <div key={cg.parentCategory?.id || idx} className="space-y-3">
-                  {/* Horizontal Parent Category Label */}
+                  {/* Parent Category Header */}
                   {cg.parentCategory && (
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800 pb-1">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 border-b border-slate-200/50 dark:border-slate-800 pb-1">
                       <IconRenderer
                         name={cg.parentCategory.icon || 'Folder'}
-                        className="w-4 h-4 text-emerald-600 dark:text-emerald-400"
+                        className="w-4 h-4 text-[#0F4C45] dark:text-emerald-400"
                       />
                       <span>{cg.parentCategory.name}</span>
                     </div>
                   )}
 
-                  {/* Goal Activity Items Rows */}
+                  {/* Goal Activity Items Rows with Consistent Bar Widths & Standard Theme Colors */}
                   <div className="space-y-3">
                     {cg.items.map((item) => {
                       const unit = item.subcategory?.value_schema?.unit || '';
@@ -209,14 +209,14 @@ export const GroupedGoalPerformanceChart: React.FC<GroupedGoalPerformanceChartPr
                       return (
                         <div
                           key={item.goal.id}
-                          className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+                          className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs"
                         >
                           {/* Activity Item Name & Icon */}
-                          <div className="sm:w-48 flex items-center gap-2 shrink-0">
-                            <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 shrink-0">
+                          <div className="sm:w-48 flex items-center gap-2.5 shrink-0">
+                            <div className="p-2 rounded-lg bg-notare-parchment dark:bg-slate-800 text-slate-800 dark:text-slate-200 shrink-0 border border-slate-200 dark:border-slate-700">
                               <IconRenderer
-                                name={item.subcategory?.icon || 'Target'}
-                                className="w-4 h-4"
+                                name={item.subcategory?.icon || cg.parentCategory?.icon || 'Target'}
+                                className="w-4 h-4 text-[#0F4C45] dark:text-emerald-400"
                               />
                             </div>
                             <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
@@ -224,35 +224,35 @@ export const GroupedGoalPerformanceChart: React.FC<GroupedGoalPerformanceChartPr
                             </span>
                           </div>
 
-                          {/* Horizontal Progress Bar Track */}
-                          <div className="flex-1 relative bg-slate-100 dark:bg-slate-900 rounded-full h-4 overflow-hidden border border-slate-200/60 dark:border-slate-700/60">
-                            {/* 10% Reference Gridlines */}
-                            <div className="absolute inset-0 flex justify-between pointer-events-none px-1 opacity-20">
-                              <span className="h-full border-r border-slate-400"></span>
-                              <span className="h-full border-r border-slate-400"></span>
-                              <span className="h-full border-r border-slate-400"></span>
-                              <span className="h-full border-r border-slate-400"></span>
-                              <span className="h-full border-r border-slate-400"></span>
+                          {/* Horizontal Progress Bar Track (Consistent 100% Width Container Across All Rows) */}
+                          <div className="flex-1 relative bg-slate-100 dark:bg-slate-950 rounded-full h-5 overflow-hidden border border-slate-200 dark:border-slate-800">
+                            {/* Vertical 20% Reference Gridlines */}
+                            <div className="absolute inset-0 flex justify-between pointer-events-none px-0.5 opacity-20">
+                              <span className="h-full border-r border-slate-500"></span>
+                              <span className="h-full border-r border-slate-500"></span>
+                              <span className="h-full border-r border-slate-500"></span>
+                              <span className="h-full border-r border-slate-500"></span>
+                              <span className="h-full border-r border-slate-500"></span>
                             </div>
 
-                            {/* Animated Fill Bar */}
+                            {/* Consistent Bar Fill */}
                             <div
                               className={`h-full rounded-full transition-all duration-500 ${
                                 isCompleted
-                                  ? 'bg-emerald-500 dark:bg-emerald-400'
-                                  : 'bg-emerald-600 dark:bg-sky-500'
+                                  ? 'bg-[#0F4C45] dark:bg-emerald-500'
+                                  : 'bg-[#8FA99B] dark:bg-sky-600'
                               }`}
                               style={{ width: `${Math.min(100, item.completionPct)}%` }}
                             />
                           </div>
 
-                          {/* Percent & Numeric Ratio Stats */}
-                          <div className="sm:w-36 flex items-center justify-between sm:justify-end gap-2 text-right shrink-0">
+                          {/* Stats Badge */}
+                          <div className="sm:w-40 flex items-center justify-between sm:justify-end gap-2 text-right shrink-0">
                             <span
-                              className={`text-xs font-extrabold px-2 py-0.5 rounded-md ${
+                              className={`text-xs font-extrabold px-2.5 py-1 rounded-md ${
                                 isCompleted
                                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                                  : 'bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300'
+                                  : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
                               }`}
                             >
                               {item.completionPct.toFixed(1)}%
@@ -271,6 +271,16 @@ export const GroupedGoalPerformanceChart: React.FC<GroupedGoalPerformanceChartPr
             </div>
           </div>
         ))}
+
+        {/* Global Bottom Percentage Scale Reference Bar */}
+        <div className="pt-2 border-t border-notare-parchment-dark dark:border-slate-700 flex justify-between text-[10px] font-extrabold text-slate-400 dark:text-slate-500 tracking-wider">
+          <span>0.0%</span>
+          <span>20.0%</span>
+          <span>40.0%</span>
+          <span>60.0%</span>
+          <span>80.0%</span>
+          <span>100.0%</span>
+        </div>
       </div>
     </div>
   );
