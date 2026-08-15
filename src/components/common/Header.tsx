@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { NotareLogo } from './NotareLogo';
-import { Settings, PlusCircle, History, LayoutDashboard, Sparkles, Check, Loader2, WifiOff } from 'lucide-react';
+import { Settings, PlusCircle, History, LayoutDashboard, Sparkles, Cloud } from 'lucide-react';
 import { getSyncStatus, onSyncStatusChange } from '../../db/firestoreSync';
 
 export const Header: React.FC = () => {
@@ -28,18 +28,15 @@ export const Header: React.FC = () => {
 
         {/* Right Actions: Minimalist Settings */}
         <div className="flex items-center gap-2">
-          {/* Sync Status Indicator */}
           <span 
             className="flex items-center justify-center w-6 h-6"
-            title={
-              syncStatus === 'syncing' ? 'Syncing...' :
-              syncStatus === 'synced' ? 'Synced' :
-              syncStatus === 'offline' ? 'Offline' : ''
-            }
+            title={syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'offline' ? 'Offline' : 'Online'}
           >
-            {syncStatus === 'syncing' && <Loader2 className="w-4 h-4 animate-spin text-sky-500" />}
-            {syncStatus === 'synced' && <Check className="w-4 h-4 text-emerald-500" />}
-            {syncStatus === 'offline' && <WifiOff className="w-4 h-4 text-amber-500" />}
+            <Cloud className={`w-4 h-4 transition-colors ${
+              syncStatus === 'syncing' ? 'text-sky-500 animate-pulse' :
+              syncStatus === 'offline' ? 'text-slate-400' :
+              'text-emerald-500'
+            }`} />
           </span>
 
           {/* Settings Tab Button */}
