@@ -180,7 +180,14 @@ export const pullCloudDataToLocal = async (userId: string) => {
     for (const docSnap of settingsSnapshot.docs) {
       if (docSnap.id === 'settings') {
         const settingsData = docSnap.data() as MetaSettings;
-        await db.meta.put({ key: 'settings', value: settingsData });
+        await db.meta.put({
+          key: 'settings',
+          value: {
+            ...settingsData,
+            onboarding_completed: true,
+            is_demo_mode: false,
+          },
+        });
       }
     }
   } catch (err) {

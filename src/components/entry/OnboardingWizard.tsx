@@ -56,10 +56,13 @@ export const OnboardingWizard: React.FC = () => {
 
       if (authTab === 'create') {
         await registerWithEmailPassword(accountEmail.trim(), accountPassword);
+        setWizardStep('experience_choice');
       } else {
         await signInWithEmailPassword(accountEmail.trim(), accountPassword);
+        await updateSettings({ onboarding_completed: true, is_demo_mode: false });
+        setActiveTab('dashboard');
+        resetToCategoryPicker();
       }
-      setWizardStep('experience_choice');
     } catch (err: any) {
       console.error('Authentication error:', err);
       setAuthError(err.message || 'Authentication failed. Please check your credentials.');
