@@ -79,7 +79,7 @@ const reconcileSync = async (userId: string) => {
     setSyncStatus('synced');
   } catch (err) {
     console.warn('Sync reconciliation deferred:', err);
-    setSyncStatus('offline');
+    setSyncStatus(navigator.onLine ? 'idle' : 'offline');
   } finally {
     isSyncing = false;
   }
