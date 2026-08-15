@@ -10,10 +10,33 @@ export class NotareDB extends Dexie {
   constructor() {
     super('NotareDB');
 
+    /**
+     * Schema Migration Guide
+     * ─────────────────────────
+     * Dexie uses version numbers to manage schema changes.
+     * To add/remove indexed fields:
+     *   1. Add a new this.version(N) block below (do NOT modify old versions)
+     *   2. Only indexed fields need to be listed in .stores()
+     *   3. Use .upgrade(tx => ...) for data transformations
+     *
+     * Example:
+     *   this.version(3).stores({ entries: 'id, subcategory_id, occurred_at, is_demo, ...' })
+     *     .upgrade(tx => tx.table('entries').toCollection().modify(e => { e.new_field = 'default'; }));
+     */
+
+    // v1: Initial schema
     this.version(1).stores({
       categories: 'id, parent_id, name, pinned, sort_order, updated_at, deleted_at',
       entries: 'id, subcategory_id, occurred_at, transcript_status, updated_at, deleted_at',
       goals: 'id, subcategory_id, direction, target_type, frequency, updated_at',
+      meta: 'key',
+    });
+
+    // v2: Add is_demo index for filtering demo data
+    this.version(2).stores({
+      categories: 'id, parent_id, name, pinned, sort_order, updated_at, deleted_at, is_demo',
+      entries: 'id, subcategory_id, occurred_at, transcript_status, updated_at, deleted_at, is_demo',
+      goals: 'id, subcategory_id, direction, target_type, frequency, updated_at, is_demo',
       meta: 'key',
     });
   }

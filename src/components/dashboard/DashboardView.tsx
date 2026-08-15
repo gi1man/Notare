@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { Category } from '../../types';
@@ -29,36 +29,61 @@ export const DashboardView: React.FC = () => {
     [settings.is_demo_mode]
   );
 
-  const categoryMap = new Map<string, Category>();
-  categories?.forEach((c) => categoryMap.set(c.id, c));
+  const { categoryMap, goalMap, totalLogs, logsThisWeek, weeklySubcategoryCounts, activeWeeklySubcategories } = useMemo(() => {
+    const catMap = new Map<string, Category>();
+    categories?.forEach((c) => catMap.set(c.id, c));
 
-  const goalMap = new Map<string, any>();
-  goals?.forEach((g) => goalMap.set(g.subcategory_id, g));
+    const gMap = new Map<string, any>();
+    goals?.forEach((g) => gMap.set(g.subcategory_id, g));
 
-  // Compute total entries count & entries this week
-  const totalLogs = entries?.length || 0;
+    const total = entries?.length || 0;
 
-  const now = new Date();
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(now.getDate() - 7);
+    const now = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(now.getDate() - 7);
 
-  const logsThisWeek = entries?.filter((e) => new Date(e.occurred_at) >= sevenDaysAgo).length || 0;
+    const weekLogs = entries?.filter((e) => new Date(e.occurred_at) >= sevenDaysAgo).length || 0;
 
-  const subcategories = categories?.filter((c) => c.parent_id !== null) || [];
+    const subcategories = categories?.filter((c) => c.parent_id !== null) || [];
 
-  // Count logs per subcategory in the past 7 days
-  const weeklySubcategoryCounts = new Map<string, number>();
-  entries?.forEach((e) => {
-    if (new Date(e.occurred_at) >= sevenDaysAgo) {
-      const current = weeklySubcategoryCounts.get(e.subcategory_id) || 0;
-      weeklySubcategoryCounts.set(e.subcategory_id, current + 1);
-    }
-  });
+    const weeklyCounts = new Map<string, number>();
+    entries?.forEach((e) => {
+      if (new Date(e.occurred_at) >= sevenDaysAgo) {
+        const current = weeklyCounts.get(e.subcategory_id) || 0;
+        weeklyCounts.set(e.subcategory_id, current + 1);
+      }
+    });
 
-  // Filter subcategories to show ONLY those with activity in the past week
-  const activeWeeklySubcategories = subcategories.filter(
-    (sub) => (weeklySubcategoryCounts.get(sub.id) || 0) > 0
-  );
+    const activeWeekly = subcategories.filter(
+      (sub) => (weeklyCounts.get(sub.id) || 0) > 0
+    );
+
+    return {
+      categoryMap: catMap,
+      goalMap: gMap,
+      totalLogs: total,
+      logsThisWeek: weekLogs,
+      weeklySubcategoryCounts: weeklyCounts,
+      activeWeeklySubcategories: activeWeekly,
+    };
+  }, [categories, entries, goals]);
+
+  // Loading skeleton while Dexie queries resolve
+  if (!categories || !entries || !goals) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6 animate-pulse">
+        <div className="h-8 w-48 bg-slate-200 dark:bg-slate-700 rounded-xl" />
+        <div className="h-4 w-64 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+        <div className="grid grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
+          ))}
+        </div>
+        <div className="h-64 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
+        <div className="h-48 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-8">
@@ -72,7 +97,7 @@ export const DashboardView: React.FC = () => {
             Trends, activity streaks, and data export
           </p>
           <p className="text-[10px] font-mono text-slate-400 dark:text-slate-500 mt-0.5">
-            build v2.0 • {new Date().toLocaleDateString()}
+            build v{typeof __BUILD_VERSION__ !== 'undefined' ? __BUILD_VERSION__ : '2.1.0'} • {typeof __BUILD_DATE__ !== 'undefined' ? new Date(__BUILD_DATE__).toLocaleDateString() : new Date().toLocaleDateString()}
           </p>
         </div>
 

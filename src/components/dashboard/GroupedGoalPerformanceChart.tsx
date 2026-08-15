@@ -105,8 +105,8 @@ export const GroupedGoalPerformanceChart: React.FC<GroupedGoalPerformanceChartPr
           .filter(
             (e) =>
               !e.deleted_at &&
-              (e.subcategory_id === goal.subcategory_id || (e as any).category_id === goal.subcategory_id) &&
-              new Date(e.occurred_at || (e as any).timestamp || Date.now()).getTime() >= startTime
+              e.subcategory_id === goal.subcategory_id &&
+              new Date(e.occurred_at).getTime() >= startTime
           )
           .reduce((sum, e) => sum + getEntryNumericValue(e), 0);
 

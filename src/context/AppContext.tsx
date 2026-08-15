@@ -89,18 +89,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     // Theme Mode
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const applyAutoTheme = () => {
+      if (settings.theme === 'auto') {
+        if (mediaQuery.matches) {
+          root.classList.add('dark');
+        } else {
+          root.classList.remove('dark');
+        }
+      }
+    };
+
     if (settings.theme === 'dark') {
       root.classList.add('dark');
     } else if (settings.theme === 'light') {
       root.classList.remove('dark');
     } else {
-      // Auto system
-      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
+      // Auto: apply now and listen for OS changes
+      applyAutoTheme();
+      mediaQuery.addEventListener('change', applyAutoTheme);
     }
+
+    return () => {
+      mediaQuery.removeEventListener('change', applyAutoTheme);
+    };
   }, [settings.font_scale, settings.high_a11y_profile, settings.theme]);
 
   // Initialize Firebase Authentication & Cloud Sync Engine on App Mount
@@ -147,9 +159,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!undoToast) return;
     if (undoToast.timeoutId) clearTimeout(undoToast.timeoutId);
 
-    // Delete entry from DB and Cloud
+    // Delete entry from local DB
     await db.entries.delete(undoToast.id);
-    await deleteEntryFromCloud(undoToast.id);
+    // Best-effort cloud delete (may fail offline)
+    try {
+      await deleteEntryFromCloud(undoToast.id);
+    } catch {
+      console.warn('Undo cloud delete deferred (offline)');
+    }
     setUndoToast(null);
   };
 

@@ -1,12 +1,25 @@
 import { db } from './index';
 
-// Export JSON file
+// Export full backup as JSON file (all tables)
 export const exportDataJSON = async () => {
   const entries = await db.entries.toArray();
-  const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(entries, null, 2));
+  const categories = await db.categories.toArray();
+  const goals = await db.goals.toArray();
+  const settings = await db.meta.get('settings');
+
+  const fullBackup = {
+    exported_at: new Date().toISOString(),
+    version: '2.1.0',
+    categories,
+    goals,
+    entries,
+    settings: settings?.value || null,
+  };
+
+  const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(fullBackup, null, 2));
   const downloadAnchor = document.createElement('a');
   downloadAnchor.setAttribute('href', dataStr);
-  downloadAnchor.setAttribute('download', `notare_backup_${new Date().toISOString().slice(0, 10)}.json`);
+  downloadAnchor.setAttribute('download', `notare_full_backup_${new Date().toISOString().slice(0, 10)}.json`);
   document.body.appendChild(downloadAnchor);
   downloadAnchor.click();
   downloadAnchor.remove();

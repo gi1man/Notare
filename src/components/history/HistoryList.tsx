@@ -14,6 +14,7 @@ export const HistoryList: React.FC = () => {
   const [selectedCatFilter, setSelectedCatFilter] = useState<string>('all');
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(50);
 
   // Fetch all categories for lookup & filter pills
   const categories = useLiveQuery(
@@ -181,7 +182,7 @@ export const HistoryList: React.FC = () => {
             </p>
           </div>
         ) : (
-          filteredEntries?.map((entry) => {
+          filteredEntries?.slice(0, visibleCount).map((entry) => {
             const subcat = categoryMap.get(entry.subcategory_id);
             const parentCat = subcat ? categoryMap.get(subcat.parent_id || '') : null;
             const valueStr = formatValueDisplay(entry, subcat);
@@ -271,6 +272,16 @@ export const HistoryList: React.FC = () => {
           })
         )}
       </div>
+
+      {/* Load More */}
+      {filteredEntries && filteredEntries.length > visibleCount && (
+        <button
+          onClick={() => setVisibleCount((c) => c + 50)}
+          className="w-full py-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+        >
+          Load More ({filteredEntries.length - visibleCount} remaining)
+        </button>
+      )}
 
       {/* Edit Entry Modal */}
       {editingEntry && (

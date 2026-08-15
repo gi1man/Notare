@@ -6,12 +6,15 @@ import {
   signInWithEmailAndPassword,
   updatePassword,
   sendPasswordResetEmail,
+  sendEmailVerification,
+  EmailAuthProvider,
+  linkWithCredential,
 } from 'firebase/auth';
-import { doc, setDoc, getDocs, collection, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db } from './index';
 import { Category, Goal, Entry, MetaSettings } from '../types';
 
-let currentUser: any = null;
+let currentUser: typeof auth.currentUser = null;
 let isSyncing = false;
 
 // Initialize Firebase Auth (Anonymous login for zero-friction launch)
@@ -37,16 +40,41 @@ export const initFirebaseAuthAndSync = (onUserChanged?: (user: any) => void) => 
 export const getCurrentUser = () => currentUser;
 
 // Register Cloud Account with Email & Custom Password
+// Attempts to upgrade anonymous account first to avoid orphan UIDs
 export const registerWithEmailPassword = async (email: string, pass: string) => {
-  const credential = await createUserWithEmailAndPassword(auth, email, pass);
-  currentUser = credential.user;
+  let user;
+
+  // If currently anonymous, try to link credentials to preserve the UID
+  if (auth.currentUser && auth.currentUser.isAnonymous) {
+    try {
+      const emailCredential = EmailAuthProvider.credential(email, pass);
+      const result = await linkWithCredential(auth.currentUser, emailCredential);
+      user = result.user;
+    } catch (linkErr: any) {
+      // If linking fails (e.g., email already in use), fall back to new account
+      if (linkErr.code === 'auth/email-already-in-use') {
+        throw new Error('This email is already registered. Use "Link 2nd Device" to sign in.');
+      }
+      const credential = await createUserWithEmailAndPassword(auth, email, pass);
+      user = credential.user;
+    }
+  } else {
+    const credential = await createUserWithEmailAndPassword(auth, email, pass);
+    user = credential.user;
+  }
+
+  currentUser = user;
   try {
-    // Push initial local data up to newly created account
-    await pushAllLocalDataToCloud(credential.user.uid);
+    await sendEmailVerification(user);
+  } catch {
+    // Non-blocking: verification email is optional
+  }
+  try {
+    await pushAllLocalDataToCloud(user.uid);
   } catch (syncErr) {
     console.warn('Initial cloud sync queued for newly created user:', syncErr);
   }
-  return credential.user;
+  return user;
 };
 
 // Sign In on 2nd Phone with Email & Custom Password
@@ -73,30 +101,50 @@ export const resetPasswordByEmail = async (email: string) => {
   await sendPasswordResetEmail(auth, email);
 };
 
-// Push all local Dexie items to Cloud
+// Push all local Dexie items to Cloud using batched writes
 export const pushAllLocalDataToCloud = async (userId: string) => {
   const categories = await db.categories.toArray();
-  for (const cat of categories) {
-    const docRef = doc(firestoreDb, 'users', userId, 'categories', cat.id);
-    await setDoc(docRef, JSON.parse(JSON.stringify(cat)), { merge: true });
-  }
-
   const goals = await db.goals.toArray();
-  for (const goal of goals) {
-    const docRef = doc(firestoreDb, 'users', userId, 'goals', goal.id);
-    await setDoc(docRef, JSON.parse(JSON.stringify(goal)), { merge: true });
-  }
-
   const entries = await db.entries.toArray();
+  const settingsItem = await db.meta.get('settings');
+
+  // Collect all write operations
+  const ops: Array<{ ref: any; data: any }> = [];
+
+  for (const cat of categories) {
+    ops.push({
+      ref: doc(firestoreDb, 'users', userId, 'categories', cat.id),
+      data: JSON.parse(JSON.stringify(cat)),
+    });
+  }
+  for (const goal of goals) {
+    ops.push({
+      ref: doc(firestoreDb, 'users', userId, 'goals', goal.id),
+      data: JSON.parse(JSON.stringify(goal)),
+    });
+  }
   for (const entry of entries) {
-    const docRef = doc(firestoreDb, 'users', userId, 'entries', entry.id);
-    await setDoc(docRef, JSON.parse(JSON.stringify(entry)), { merge: true });
+    ops.push({
+      ref: doc(firestoreDb, 'users', userId, 'entries', entry.id),
+      data: JSON.parse(JSON.stringify(entry)),
+    });
+  }
+  if (settingsItem?.value) {
+    ops.push({
+      ref: doc(firestoreDb, 'users', userId, 'settings', 'settings'),
+      data: JSON.parse(JSON.stringify(settingsItem.value)),
+    });
   }
 
-  const settingsItem = await db.meta.get('settings');
-  if (settingsItem?.value) {
-    const docRef = doc(firestoreDb, 'users', userId, 'settings', 'settings');
-    await setDoc(docRef, JSON.parse(JSON.stringify(settingsItem.value)), { merge: true });
+  // Commit in batches of 450 (Firestore limit is 500 per batch)
+  const BATCH_SIZE = 450;
+  for (let i = 0; i < ops.length; i += BATCH_SIZE) {
+    const batch = writeBatch(firestoreDb);
+    const chunk = ops.slice(i, i + BATCH_SIZE);
+    for (const op of chunk) {
+      batch.set(op.ref, op.data, { merge: true });
+    }
+    await batch.commit();
   }
 };
 
