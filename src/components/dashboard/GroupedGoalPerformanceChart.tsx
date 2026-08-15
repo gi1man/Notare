@@ -219,67 +219,67 @@ export const GroupedGoalPerformanceChart: React.FC<GroupedGoalPerformanceChartPr
                     </div>
                   )}
 
-                  {/* Goal Activity Items Rows with Consistent Bar Widths & Standard Theme Colors */}
+                  {/* Goal Activity Items — Mobile-First Stacked Layout */}
                   <div className="space-y-3">
                     {cg.items.map((item) => {
                       const unit = item.subcategory?.value_schema?.unit || '';
                       const isCompleted = item.completionPct >= 100;
+                      const barWidth = Math.max(2, Math.min(100, item.completionPct));
 
                       return (
                         <div
                           key={item.goal.id}
-                          className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs"
+                          className="p-3 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs space-y-2"
                         >
-                          {/* Activity Item Name & Icon */}
-                          <div className="sm:w-48 flex items-center gap-2.5 shrink-0">
-                            <div className="p-2 rounded-lg bg-notare-parchment dark:bg-slate-800 text-slate-800 dark:text-slate-200 shrink-0 border border-slate-200 dark:border-slate-700">
-                              <IconRenderer
-                                name={item.subcategory?.icon || cg.parentCategory?.icon || 'Target'}
-                                className="w-4 h-4 text-[#0F4C45] dark:text-emerald-400"
-                              />
+                          {/* Row 1: Icon + Name + Percentage */}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="p-2 rounded-lg bg-notare-parchment dark:bg-slate-800 shrink-0 border border-slate-200 dark:border-slate-700">
+                                <IconRenderer
+                                  name={item.subcategory?.icon || cg.parentCategory?.icon || 'Target'}
+                                  className="w-4 h-4 text-[#0F4C45] dark:text-emerald-400"
+                                />
+                              </div>
+                              <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                                {item.subcategory?.name || 'Goal Activity'}
+                              </span>
                             </div>
-                            <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
-                              {item.subcategory?.name || 'Goal Activity'}
-                            </span>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span
+                                className={`text-xs font-extrabold px-2 py-0.5 rounded-md whitespace-nowrap ${
+                                  isCompleted
+                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                    : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                                }`}
+                              >
+                                {item.completionPct.toFixed(1)}%
+                              </span>
+                              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                                {item.loggedValue}/{item.targetValue}{unit ? ` ${unit}` : ''}
+                              </span>
+                            </div>
                           </div>
 
-                          {/* Horizontal Progress Bar Track (Consistent 100% Width Container Across All Rows) */}
-                          <div className="flex-1 relative bg-slate-100 dark:bg-slate-950 rounded-full h-5 overflow-hidden border border-slate-200 dark:border-slate-800">
-                            {/* Vertical 20% Reference Gridlines */}
-                            <div className="absolute inset-0 flex justify-between pointer-events-none px-0.5 opacity-20">
-                              <span className="h-full border-r border-slate-500"></span>
-                              <span className="h-full border-r border-slate-500"></span>
-                              <span className="h-full border-r border-slate-500"></span>
-                              <span className="h-full border-r border-slate-500"></span>
-                              <span className="h-full border-r border-slate-500"></span>
+                          {/* Row 2: Full-width progress bar (always visible on all screen sizes) */}
+                          <div className="w-full relative bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden border border-slate-200 dark:border-slate-800" style={{ height: '22px' }}>
+                            {/* 20% Reference Gridlines */}
+                            <div className="absolute inset-0 flex pointer-events-none" style={{ justifyContent: 'space-evenly' }}>
+                              <span className="h-full" style={{ borderRight: '1px solid rgba(100,116,139,0.2)' }}></span>
+                              <span className="h-full" style={{ borderRight: '1px solid rgba(100,116,139,0.2)' }}></span>
+                              <span className="h-full" style={{ borderRight: '1px solid rgba(100,116,139,0.2)' }}></span>
+                              <span className="h-full" style={{ borderRight: '1px solid rgba(100,116,139,0.2)' }}></span>
                             </div>
 
-                            {/* Consistent Bar Fill */}
+                            {/* Bar Fill — min 2% width so even small values are visible */}
                             <div
-                              className={`h-full rounded-full transition-all duration-500 ${
-                                isCompleted
-                                  ? 'bg-[#0F4C45] dark:bg-emerald-500'
-                                  : 'bg-[#8FA99B] dark:bg-sky-600'
-                              }`}
-                              style={{ width: `${Math.min(100, item.completionPct)}%` }}
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${barWidth}%`,
+                                backgroundColor: isCompleted ? '#0F4C45' : '#8FA99B',
+                                transition: 'width 0.5s ease',
+                              }}
                             />
-                          </div>
-
-                          {/* Stats Badge */}
-                          <div className="sm:w-40 flex items-center justify-between sm:justify-end gap-2 text-right shrink-0">
-                            <span
-                              className={`text-xs font-extrabold px-2.5 py-1 rounded-md ${
-                                isCompleted
-                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                                  : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                              }`}
-                            >
-                              {item.completionPct.toFixed(1)}%
-                            </span>
-
-                            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                              {item.loggedValue} / {item.targetValue} {unit}
-                            </span>
                           </div>
                         </div>
                       );
