@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { DeviceMigrationModal } from '../settings/DeviceMigrationModal';
 import { NotareLogo } from './NotareLogo';
-import { Cloud, Settings, PlusCircle, History, LayoutDashboard, Sparkles } from 'lucide-react';
+import { Settings, PlusCircle, History, LayoutDashboard, Sparkles, Check, Loader2, WifiOff } from 'lucide-react';
+import { getSyncStatus, onSyncStatusChange } from '../../db/firestoreSync';
 
 export const Header: React.FC = () => {
   const { activeTab, setActiveTab, resetToCategoryPicker } = useApp();
-  const [showMigrationModal, setShowMigrationModal] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(getSyncStatus());
+
+  useEffect(() => {
+    return onSyncStatusChange(setSyncStatus);
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 bg-[#F5F1E8] dark:bg-slate-900 border-b border-notare-parchment-dark dark:border-slate-800 shadow-sm">
@@ -22,20 +26,21 @@ export const Header: React.FC = () => {
           <NotareLogo variant="ink" size="md" showText={true} />
         </button>
 
-        {/* Right Actions: Minimalist Cloud Backup & Settings */}
+        {/* Right Actions: Minimalist Settings */}
         <div className="flex items-center gap-2">
-          {/* Cloud Backup & Migration Button */}
-          <button
-            onClick={() => setShowMigrationModal(true)}
-            aria-label="Cloud Backup & Migration"
-            className="tap-target p-2 rounded-full hover:bg-notare-parchment-dark dark:hover:bg-slate-800 transition-colors flex items-center justify-center text-slate-700 dark:text-slate-300"
-            title="Cloud Backup & Device Migration"
+          {/* Sync Status Indicator */}
+          <span 
+            className="flex items-center justify-center w-6 h-6"
+            title={
+              syncStatus === 'syncing' ? 'Syncing...' :
+              syncStatus === 'synced' ? 'Synced' :
+              syncStatus === 'offline' ? 'Offline' : ''
+            }
           >
-            <span className="flex items-center text-[#0F4C45] dark:text-emerald-400 font-semibold text-sm gap-1">
-              <Cloud className="w-6 h-6" />
-              <span className="sr-only">Cloud Backup</span>
-            </span>
-          </button>
+            {syncStatus === 'syncing' && <Loader2 className="w-4 h-4 animate-spin text-sky-500" />}
+            {syncStatus === 'synced' && <Check className="w-4 h-4 text-emerald-500" />}
+            {syncStatus === 'offline' && <WifiOff className="w-4 h-4 text-amber-500" />}
+          </span>
 
           {/* Settings Tab Button */}
           <button
@@ -51,11 +56,6 @@ export const Header: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {/* Device Migration & Cloud Backup Modal */}
-      {showMigrationModal && (
-        <DeviceMigrationModal onClose={() => setShowMigrationModal(false)} />
-      )}
 
       {/* Main Tab Navigation Bar */}
       <nav className="bg-notare-parchment-dark/60 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-700/50">

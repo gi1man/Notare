@@ -17,6 +17,23 @@ import { Category, Goal, Entry, MetaSettings } from '../types';
 let currentUser: typeof auth.currentUser = null;
 let isSyncing = false;
 
+type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline';
+let syncStatus: SyncStatus = 'idle';
+const syncListeners: Set<(s: SyncStatus) => void> = new Set();
+
+const setSyncStatus = (s: SyncStatus) => {
+  syncStatus = s;
+  syncListeners.forEach(fn => fn(s));
+};
+
+export const getSyncStatus = () => syncStatus;
+export const onSyncStatusChange = (fn: (s: SyncStatus) => void) => {
+  syncListeners.add(fn);
+  return () => {
+    syncListeners.delete(fn);
+  };
+};
+
 // Initialize Firebase Auth (Anonymous login for zero-friction launch)
 export const initFirebaseAuthAndSync = (onUserChanged?: (user: any) => void) => {
   onAuthStateChanged(auth, async (user: any) => {
@@ -44,6 +61,10 @@ export const initFirebaseAuthAndSync = (onUserChanged?: (user: any) => void) => 
       await reconcileSync(currentUser.uid);
     }
   });
+
+  window.addEventListener('offline', () => {
+    setSyncStatus('offline');
+  });
 };
 
 // Push all local data up, then pull cloud data down
@@ -51,11 +72,14 @@ export const initFirebaseAuthAndSync = (onUserChanged?: (user: any) => void) => 
 const reconcileSync = async (userId: string) => {
   if (isSyncing) return;
   isSyncing = true;
+  setSyncStatus('syncing');
   try {
     await pushAllLocalDataToCloud(userId);
     await pullCloudDataToLocal(userId);
+    setSyncStatus('synced');
   } catch (err) {
     console.warn('Sync reconciliation deferred:', err);
+    setSyncStatus('offline');
   } finally {
     isSyncing = false;
   }

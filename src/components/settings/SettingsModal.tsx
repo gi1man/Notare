@@ -6,7 +6,8 @@ import { generateDummyData } from '../../db/dummyDataGenerator';
 import { exportDataCSV, exportDataJSON } from '../../db/exportData';
 import { FontScaleOption, ThemeMode } from '../../types';
 import { CategoryManagerModal } from '../categories/CategoryManagerModal';
-import { DeviceMigrationModal } from './DeviceMigrationModal';
+import { importMigrationBackup } from '../../db/cloudBackup';
+import { Upload, ChevronDown, ChevronUp, AlertCircle, CheckCircle2 } from 'lucide-react';
 import {
   registerWithEmailPassword,
   signInWithEmailPassword,
@@ -40,7 +41,8 @@ export const SettingsModal: React.FC = () => {
   const { settings, updateSettings, setActiveTab } = useApp();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showCatManager, setShowCatManager] = useState(false);
-  const [showMigrationModal, setShowMigrationModal] = useState(false);
+  const [showRestore, setShowRestore] = useState(false);
+  const [restoreStatus, setRestoreStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
 
   // Email & Custom Password Sync State
   const [syncEmail, setSyncEmail] = useState('');
@@ -452,30 +454,13 @@ export const SettingsModal: React.FC = () => {
         </button>
       </div>
 
-      {/* Cloud Backup & Device Migration Section */}
+      {/* Backup & Export Section */}
       <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
         <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <Cloud className="w-5 h-5 text-sky-600 dark:text-sky-400" /> Cloud Backup & Device Migration
+          <Download className="w-5 h-5 text-sky-600 dark:text-sky-400" /> Backup & Export
         </h3>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Back up your mobile data to cloud/local storage or migrate habits to a new phone.
-        </p>
-
-        <button
-          onClick={() => setShowMigrationModal(true)}
-          className="w-full py-3.5 px-4 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-800 dark:text-emerald-300 font-bold rounded-xl text-sm transition-all tap-target flex items-center justify-center gap-2"
-        >
-          <Cloud className="w-4 h-4" /> Cloud Backup & Restore Backup File
-        </button>
-      </div>
-
-      {/* Export Your Data Section */}
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <Download className="w-5 h-5 text-sky-600 dark:text-sky-400" /> Export Your Data
-        </h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          Download 100% of your activity logs anytime in CSV format for spreadsheets or raw JSON format for analysis.
+          Your data syncs automatically to the cloud when you have an account. You can also download manual backups.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 pt-1">
@@ -483,22 +468,74 @@ export const SettingsModal: React.FC = () => {
             onClick={() => exportDataCSV()}
             className="flex-1 py-3.5 px-4 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl shadow-md transition-all tap-target flex items-center justify-center gap-2 text-sm"
           >
-            <FileSpreadsheet className="w-4 h-4" /> Download CSV File
+            <FileSpreadsheet className="w-4 h-4" /> Download CSV
           </button>
 
           <button
             onClick={() => exportDataJSON()}
             className="flex-1 py-3.5 px-4 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold rounded-xl shadow-md transition-all tap-target flex items-center justify-center gap-2 text-sm"
           >
-            <FileCode className="w-4 h-4" /> Download JSON File
+            <FileCode className="w-4 h-4" /> Download JSON
           </button>
         </div>
-      </div>
 
-      {/* Device Migration Modal */}
-      {showMigrationModal && (
-        <DeviceMigrationModal onClose={() => setShowMigrationModal(false)} />
-      )}
+        {/* Collapsible Restore Section */}
+        <button
+          onClick={() => setShowRestore(!showRestore)}
+          className="w-full py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center gap-1 transition-colors"
+        >
+          Restore from backup file
+          {showRestore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </button>
+
+        {showRestore && (
+          <div className="space-y-3 pt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Select a previously exported <code>.json</code> backup file to restore your data. This will replace all local data.
+            </p>
+
+            {restoreStatus.type && (
+              <div className={`p-3 rounded-xl border flex items-center gap-2 text-xs font-semibold ${
+                restoreStatus.type === 'success'
+                  ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300'
+                  : 'bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border-rose-300'
+              }`}>
+                {restoreStatus.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                {restoreStatus.message}
+              </div>
+            )}
+
+            <label className="w-full py-3 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-bold rounded-xl text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer tap-target">
+              <Upload className="w-4 h-4" /> Select Backup File
+              <input
+                type="file"
+                accept=".json,application/json,text/plain,*/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = async (event) => {
+                    const jsonString = event.target?.result as string;
+                    if (!jsonString) return;
+                    if (confirm('Restoring a backup will replace all local data. Continue?')) {
+                      const result = await importMigrationBackup(jsonString);
+                      if (result.success) {
+                        await updateSettings({ onboarding_completed: true, is_demo_mode: false });
+                        setRestoreStatus({ type: 'success', message: `Restored ${result.count.entries} entries, ${result.count.categories} categories, ${result.count.goals} goals.` });
+                        setTimeout(() => window.location.reload(), 1200);
+                      } else {
+                        setRestoreStatus({ type: 'error', message: result.message });
+                      }
+                    }
+                  };
+                  reader.readAsText(file);
+                }}
+                className="hidden"
+              />
+            </label>
+          </div>
+        )}
+      </div>
 
       {/* Category Manager Modal */}
       {showCatManager && (
