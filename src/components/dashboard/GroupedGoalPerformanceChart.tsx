@@ -82,19 +82,30 @@ export const GroupedGoalPerformanceChart: React.FC<GroupedGoalPerformanceChartPr
     targetFreq: 'daily' | 'weekly' | 'monthly',
     startTime: number
   ): CategoryGroup[] => {
-    const freqGoals = goals.filter((g) => g.frequency === targetFreq);
+    const freqGoals = goals.filter(
+      (g) => g.frequency && g.frequency.toLowerCase() === targetFreq
+    );
     if (freqGoals.length === 0) return [];
 
     const items: GoalItemData[] = freqGoals.map((goal) => {
-      const subcat = categoryMap.get(goal.subcategory_id)!;
-      const parentCat = subcat ? categoryMap.get(subcat.parent_id || '') || null : null;
+      const subcat =
+        categoryMap.get(goal.subcategory_id) ||
+        ({
+          id: goal.subcategory_id,
+          parent_id: null,
+          name: 'Goal Activity',
+          icon: 'Target',
+          is_demo: false,
+        } as Category);
+
+      const parentCat = subcat.parent_id ? categoryMap.get(subcat.parent_id) || null : null;
 
       const logged = entries
         .filter(
           (e) =>
-            e.subcategory_id === goal.subcategory_id &&
             !e.deleted_at &&
-            new Date(e.occurred_at).getTime() >= startTime
+            (e.subcategory_id === goal.subcategory_id || (e as any).category_id === goal.subcategory_id) &&
+            new Date(e.occurred_at || (e as any).timestamp || Date.now()).getTime() >= startTime
         )
         .reduce((sum, e) => sum + getEntryNumericValue(e), 0);
 
