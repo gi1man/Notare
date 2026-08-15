@@ -157,7 +157,7 @@ export const EntryForm: React.FC = () => {
       note_text: noteText.trim() || undefined,
       transcript: transcriptText.trim() || undefined,
       transcript_status: transcriptText.trim() ? 'done' : 'none',
-      updated_at: occurredAt.toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
     try {

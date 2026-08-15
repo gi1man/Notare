@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { db } from '../../db';
+import { syncEntryToCloud } from '../../db/firestoreSync';
 import { Entry, Category, DualNumberValue } from '../../types';
 import { Edit3, X, Save } from 'lucide-react';
 
@@ -72,6 +73,11 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
     };
 
     await db.entries.put(updatedEntry);
+    try {
+      await syncEntryToCloud(updatedEntry);
+    } catch (err) {
+      console.warn('Edit sync queued offline:', err);
+    }
     onClose();
   };
 

@@ -5,6 +5,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updatePassword,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc, getDocs, collection, deleteDoc } from 'firebase/firestore';
 import { db } from './index';
@@ -65,6 +66,11 @@ export const signInWithEmailPassword = async (email: string, pass: string) => {
 export const changeUserPassword = async (newPass: string) => {
   if (!auth.currentUser) throw new Error('No account signed in to update password.');
   await updatePassword(auth.currentUser, newPass);
+};
+
+// Send Password Reset Email
+export const resetPasswordByEmail = async (email: string) => {
+  await sendPasswordResetEmail(auth, email);
 };
 
 // Push all local Dexie items to Cloud

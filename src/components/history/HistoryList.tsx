@@ -5,6 +5,7 @@ import { useApp } from '../../context/AppContext';
 import { Entry, Category } from '../../types';
 import { IconRenderer } from '../common/IconRenderer';
 import { EditEntryModal } from './EditEntryModal';
+import { deleteEntryFromCloud } from '../../db/firestoreSync';
 import { Search, Trash2, Calendar, FileText, Mic, Edit3 } from 'lucide-react';
 
 export const HistoryList: React.FC = () => {
@@ -12,6 +13,7 @@ export const HistoryList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCatFilter, setSelectedCatFilter] = useState<string>('all');
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
 
   // Fetch all categories for lookup & filter pills
   const categories = useLiveQuery(
@@ -68,8 +70,9 @@ export const HistoryList: React.FC = () => {
     const subcat = categoryMap.get(entry.subcategory_id);
     const parentCat = subcat ? categoryMap.get(subcat.parent_id || '') : null;
 
-    // Delete from DB
+    // Delete from local DB and cloud
     await db.entries.delete(entry.id);
+    await deleteEntryFromCloud(entry.id);
 
     // Trigger Undo toast
     triggerUndoToast(
@@ -216,12 +219,27 @@ export const HistoryList: React.FC = () => {
                     </button>
 
                     <button
-                      onClick={() => handleDeleteEntry(entry)}
+                      onClick={() => {
+                        if (confirmingDeleteId === entry.id) {
+                          handleDeleteEntry(entry);
+                          setConfirmingDeleteId(null);
+                        } else {
+                          setConfirmingDeleteId(entry.id);
+                          setTimeout(() => setConfirmingDeleteId((prev) => prev === entry.id ? null : prev), 3000);
+                        }
+                      }}
                       aria-label="Delete entry"
-                      className="p-2 text-slate-400 hover:text-rose-600 transition-colors tap-target"
+                      className={`p-2 transition-colors tap-target flex items-center gap-1 rounded-lg ${
+                        confirmingDeleteId === entry.id
+                          ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400'
+                          : 'text-slate-400 hover:text-rose-600'
+                      }`}
                       title="Delete entry"
                     >
                       <Trash2 className="w-5 h-5" />
+                      {confirmingDeleteId === entry.id && (
+                        <span className="text-[10px] font-extrabold">Delete?</span>
+                      )}
                     </button>
                   </div>
                 </div>

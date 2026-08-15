@@ -5,9 +5,11 @@ import { STARTER_CATEGORIES } from './starterData';
 export const generateDummyData = async () => {
   const now = new Date();
 
-  // Clear existing demo entries & goals to ensure clean state
-  await db.entries.clear();
-  await db.goals.clear();
+  // Clear only existing DEMO entries & goals (preserve real user data)
+  await db.entries.where('is_demo').equals(1).delete().catch(() =>
+    db.entries.filter((e) => e.is_demo === true).delete()
+  );
+  await db.goals.filter((g) => g.is_demo === true).delete();
 
   // 1. Ensure starter categories are loaded and marked with is_demo: true
   for (const cat of STARTER_CATEGORIES) {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Goal, Entry, Category } from '../../types';
 import { IconRenderer } from '../common/IconRenderer';
 import { BarChart3, Calendar } from 'lucide-react';
@@ -35,129 +35,139 @@ export const GroupedGoalPerformanceChart: React.FC<GroupedGoalPerformanceChartPr
   entries,
   categories,
 }) => {
-  const categoryMap = new Map<string, Category>();
-  categories.forEach((c) => categoryMap.set(c.id, c));
+  const { frequencyGroups } = useMemo(() => {
+    const catMap = new Map<string, Category>();
+    categories.forEach((c) => catMap.set(c.id, c));
 
-  // Date Boundaries & Dynamic Period Progress Calculation
-  const now = new Date();
+    // Date Boundaries & Dynamic Period Progress Calculation
+    const now = new Date();
 
-  // Day of week: 1 (Mon) to 7 (Sun)
-  const jsDay = now.getDay();
-  const currentDayOfWeek = jsDay === 0 ? 7 : jsDay;
+    // Day of week: 1 (Mon) to 7 (Sun)
+    const jsDay = now.getDay();
+    const dayOfWeek = jsDay === 0 ? 7 : jsDay;
 
-  // Day of month & Total days in current month
-  const currentDayOfMonth = now.getDate();
-  const daysInCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    // Day of month & Total days in current month
+    const dayOfMonth = now.getDate();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 
-  const startOfTodayTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
-  const startOfWeekTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0).getTime();
-  const startOfMonthTime = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).getTime();
+    const startOfTodayTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+    const startOfWeekTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0).getTime();
+    const startOfMonthTime = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).getTime();
 
-  // Helper to extract numeric value from entry
-  const getEntryNumericValue = (entry: Entry): number => {
-    if (typeof entry.value === 'number') return entry.value;
-    if (typeof entry.value === 'boolean') return entry.value ? 1 : 0;
-    if (typeof entry.value === 'object' && entry.value !== null && 'value_1' in entry.value) {
-      return entry.value.value_1;
-    }
-    return 1;
-  };
-
-  // Helper to compute individual percent completion for a single goal
-  const computeIndividualPct = (logged: number, target: number, direction: 'at_least' | 'at_most'): number => {
-    if (direction === 'at_least') {
-      if (target <= 0) return 100;
-      const rawPct = (logged / target) * 100;
-      return Math.min(100, Math.max(0, Math.round(rawPct * 10) / 10));
-    } else {
-      if (logged === 0) return 100;
-      if (logged <= target) return 100;
-      const overPct = (target / logged) * 100;
-      return Math.max(0, Math.round(overPct * 10) / 10);
-    }
-  };
-
-  // Helper to process goals for a frequency
-  const processGoalsForFrequency = (
-    targetFreq: 'daily' | 'weekly' | 'monthly',
-    startTime: number
-  ): CategoryGroup[] => {
-    const freqGoals = goals.filter(
-      (g) => g.frequency && g.frequency.toLowerCase() === targetFreq
-    );
-    if (freqGoals.length === 0) return [];
-
-    const items: GoalItemData[] = freqGoals.map((goal) => {
-      const subcat =
-        categoryMap.get(goal.subcategory_id) ||
-        ({
-          id: goal.subcategory_id,
-          parent_id: null,
-          name: 'Goal Activity',
-          icon: 'Target',
-          is_demo: false,
-        } as Category);
-
-      const parentCat = subcat.parent_id ? categoryMap.get(subcat.parent_id) || null : null;
-
-      const logged = entries
-        .filter(
-          (e) =>
-            !e.deleted_at &&
-            (e.subcategory_id === goal.subcategory_id || (e as any).category_id === goal.subcategory_id) &&
-            new Date(e.occurred_at || (e as any).timestamp || Date.now()).getTime() >= startTime
-        )
-        .reduce((sum, e) => sum + getEntryNumericValue(e), 0);
-
-      const targetVal = goal.target_value;
-      const pct = computeIndividualPct(logged, targetVal, goal.direction);
-
-      return {
-        goal,
-        subcategory: subcat,
-        parentCategory: parentCat,
-        loggedValue: logged,
-        targetValue: targetVal,
-        completionPct: pct,
-      };
-    });
-
-    // Group items by Parent Category
-    const groupsMap = new Map<string, { parent: Category | null; items: GoalItemData[] }>();
-    items.forEach((item) => {
-      const parentId = item.parentCategory ? item.parentCategory.id : 'uncategorized';
-      if (!groupsMap.has(parentId)) {
-        groupsMap.set(parentId, { parent: item.parentCategory, items: [] });
+    // Helper to extract numeric value from entry
+    const getEntryNumericValue = (entry: Entry): number => {
+      if (typeof entry.value === 'number') return entry.value;
+      if (typeof entry.value === 'boolean') return entry.value ? 1 : 0;
+      if (typeof entry.value === 'object' && entry.value !== null && 'value_1' in entry.value) {
+        return entry.value.value_1;
       }
-      groupsMap.get(parentId)!.items.push(item);
-    });
+      return 1;
+    };
 
-    return Array.from(groupsMap.values()).map((g) => ({
-      parentCategory: g.parent,
-      items: g.items,
-    }));
-  };
+    // Helper to compute individual percent completion for a single goal
+    const computeIndividualPct = (logged: number, target: number, direction: 'at_least' | 'at_most'): number => {
+      if (direction === 'at_least') {
+        if (target <= 0) return 100;
+        const rawPct = (logged / target) * 100;
+        return Math.min(100, Math.max(0, Math.round(rawPct * 10) / 10));
+      } else {
+        if (logged === 0) return 100;
+        if (logged <= target) return 100;
+        const overPct = (target / logged) * 100;
+        return Math.max(0, Math.round(overPct * 10) / 10);
+      }
+    };
 
-  // Order requested by user: 1. Weekly -> 2. Monthly -> 3. Daily
-  const frequencyGroups: FrequencyGroup[] = [
-    {
-      frequency: 'weekly',
-      label: 'Weekly Goals',
-      caption: `Day ${currentDayOfWeek} of 7`,
-      categoryGroups: processGoalsForFrequency('weekly', startOfWeekTime),
-    },
-    {
-      frequency: 'monthly',
-      label: 'Monthly Goals',
-      caption: `Day ${currentDayOfMonth} of ${daysInCurrentMonth}`,
-      categoryGroups: processGoalsForFrequency('monthly', startOfMonthTime),
-    },
-    {
-      frequency: 'daily',
-      label: 'Daily Goals',
-      categoryGroups: processGoalsForFrequency('daily', startOfTodayTime),
-    },
-  ].filter((fg) => fg.categoryGroups.length > 0);
+    // Helper to process goals for a frequency
+    const processGoalsForFrequency = (
+      targetFreq: 'daily' | 'weekly' | 'monthly',
+      startTime: number
+    ): CategoryGroup[] => {
+      const freqGoals = goals.filter(
+        (g) => g.frequency && g.frequency.toLowerCase() === targetFreq
+      );
+      if (freqGoals.length === 0) return [];
+
+      const items: GoalItemData[] = freqGoals.map((goal) => {
+        const subcat =
+          catMap.get(goal.subcategory_id) ||
+          ({
+            id: goal.subcategory_id,
+            parent_id: null,
+            name: 'Goal Activity',
+            icon: 'Target',
+            is_demo: false,
+          } as Category);
+
+        const parentCat = subcat.parent_id ? catMap.get(subcat.parent_id) || null : null;
+
+        const logged = entries
+          .filter(
+            (e) =>
+              !e.deleted_at &&
+              (e.subcategory_id === goal.subcategory_id || (e as any).category_id === goal.subcategory_id) &&
+              new Date(e.occurred_at || (e as any).timestamp || Date.now()).getTime() >= startTime
+          )
+          .reduce((sum, e) => sum + getEntryNumericValue(e), 0);
+
+        const targetVal = goal.target_value;
+        const pct = computeIndividualPct(logged, targetVal, goal.direction);
+
+        return {
+          goal,
+          subcategory: subcat,
+          parentCategory: parentCat,
+          loggedValue: logged,
+          targetValue: targetVal,
+          completionPct: pct,
+        };
+      });
+
+      // Group items by Parent Category
+      const groupsMap = new Map<string, { parent: Category | null; items: GoalItemData[] }>();
+      items.forEach((item) => {
+        const parentId = item.parentCategory ? item.parentCategory.id : 'uncategorized';
+        if (!groupsMap.has(parentId)) {
+          groupsMap.set(parentId, { parent: item.parentCategory, items: [] });
+        }
+        groupsMap.get(parentId)!.items.push(item);
+      });
+
+      return Array.from(groupsMap.values()).map((g) => ({
+        parentCategory: g.parent,
+        items: g.items,
+      }));
+    };
+
+    // Order requested by user: 1. Weekly -> 2. Monthly -> 3. Daily
+    const freqGroups: FrequencyGroup[] = [
+      {
+        frequency: 'weekly',
+        label: 'Weekly Goals',
+        caption: `Day ${dayOfWeek} of 7`,
+        categoryGroups: processGoalsForFrequency('weekly', startOfWeekTime),
+      },
+      {
+        frequency: 'monthly',
+        label: 'Monthly Goals',
+        caption: `Day ${dayOfMonth} of ${daysInMonth}`,
+        categoryGroups: processGoalsForFrequency('monthly', startOfMonthTime),
+      },
+      {
+        frequency: 'daily',
+        label: 'Daily Goals',
+        categoryGroups: processGoalsForFrequency('daily', startOfTodayTime),
+      },
+    ].filter((fg) => fg.categoryGroups.length > 0);
+
+    return {
+      categoryMap: catMap,
+      frequencyGroups: freqGroups,
+      currentDayOfWeek: dayOfWeek,
+      currentDayOfMonth: dayOfMonth,
+      daysInCurrentMonth: daysInMonth,
+    };
+  }, [goals, entries, categories]);
 
   if (frequencyGroups.length === 0) {
     return (

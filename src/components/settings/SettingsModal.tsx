@@ -11,6 +11,7 @@ import {
   registerWithEmailPassword,
   signInWithEmailPassword,
   changeUserPassword,
+  resetPasswordByEmail,
 } from '../../db/firestoreSync';
 import {
   Settings,
@@ -128,7 +129,24 @@ export const SettingsModal: React.FC = () => {
     await db.goals.clear();
     await db.meta.clear();
 
-    await updateSettings({ onboarding_completed: false, is_demo_mode: false });
+    // Write a fresh default settings record directly (don't spread old settings)
+    await db.meta.put({
+      key: 'settings',
+      value: {
+        onboarding_completed: false,
+        telemetry_opt_in: false,
+        theme: 'light',
+        font_scale: 'normal',
+        high_a11y_profile: false,
+        undo_duration_ms: 5000,
+        voice_language: 'en-US',
+        mic_help_dismissed_count: 0,
+        mic_help_do_not_show: false,
+        ios_a2hs_dismissed: false,
+        is_demo_mode: false,
+      },
+    });
+
     setShowClearConfirm(false);
     setActiveTab('entry');
   };
@@ -267,6 +285,25 @@ export const SettingsModal: React.FC = () => {
                 Update Password
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={async () => {
+                if (!syncEmail.trim()) {
+                  setAuthStatus({ type: 'error', message: 'Enter your email above, then tap Forgot Password.' });
+                  return;
+                }
+                try {
+                  await resetPasswordByEmail(syncEmail.trim());
+                  setAuthStatus({ type: 'success', message: `Password reset email sent to ${syncEmail.trim()}.` });
+                } catch (err: any) {
+                  setAuthStatus({ type: 'error', message: err.message || 'Failed to send reset email.' });
+                }
+              }}
+              className="text-xs font-semibold text-slate-500 hover:text-[#0F4C45] dark:text-slate-400 dark:hover:text-sky-400 transition-colors"
+            >
+              Forgot Password?
+            </button>
           </div>
         </form>
       </div>

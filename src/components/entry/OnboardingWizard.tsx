@@ -7,6 +7,7 @@ import {
   signInWithEmailPassword,
   getCurrentUser,
   pushAllLocalDataToCloud,
+  resetPasswordByEmail,
 } from '../../db/firestoreSync';
 import {
   Target,
@@ -224,6 +225,28 @@ export const OnboardingWizard: React.FC = () => {
               >
                 {authTab === 'create' ? 'Create Account & Continue →' : 'Sign In & Continue →'}
               </button>
+
+              {authTab === 'login' && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!accountEmail.trim()) {
+                      setAuthError('Enter your email address above, then tap Forgot Password.');
+                      return;
+                    }
+                    try {
+                      await resetPasswordByEmail(accountEmail.trim());
+                      setAuthError('');
+                      alert(`Password reset email sent to ${accountEmail.trim()}. Check your inbox.`);
+                    } catch (err: any) {
+                      setAuthError(err.message || 'Failed to send reset email.');
+                    }
+                  }}
+                  className="text-xs font-semibold text-slate-500 hover:text-[#0F4C45] dark:text-slate-400 dark:hover:text-sky-400 transition-colors"
+                >
+                  Forgot Password?
+                </button>
+              )}
             </form>
           </div>
         )}

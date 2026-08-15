@@ -10,7 +10,13 @@ service cloud.firestore {
     }
 
     match /community_totals/{docId} {
-      allow read, write: if true;
+      // Anyone can read aggregate community stats
+      allow read: if true;
+      // Only authenticated users can write, and only the expected fields
+      allow write: if request.auth != null
+        && request.resource.data.keys().hasOnly(['category', 'subcategory', 'total_logs', 'total_value', 'updated_at'])
+        && request.resource.data.category is string
+        && request.resource.data.subcategory is string;
     }
   }
 }

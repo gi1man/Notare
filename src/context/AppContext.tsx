@@ -58,16 +58,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const settings: MetaSettings = overrideSettings || metaItem?.value || DEFAULT_SETTINGS;
   const goals = useLiveQuery(() => db.goals.toArray());
 
-  // Automatically reset to First Startup Screen if 0 goals exist in DB
+  // Only reset to onboarding if in DEMO mode and all demo goals are cleared
+  // Real users can have 0 goals without being forced back to onboarding
   useEffect(() => {
-    if (goals && goals.length === 0 && settings.onboarding_completed) {
+    if (goals && goals.length === 0 && settings.onboarding_completed && settings.is_demo_mode) {
       const resetNoGoalsState = async () => {
         await clearDemoData();
         await updateSettings({ onboarding_completed: false, is_demo_mode: false });
       };
       resetNoGoalsState();
     }
-  }, [goals, settings.onboarding_completed]);
+  }, [goals, settings.onboarding_completed, settings.is_demo_mode]);
 
   // Apply Theme & Font Scale HTML Body Classes
   useEffect(() => {
