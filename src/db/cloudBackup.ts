@@ -84,15 +84,16 @@ export const importMigrationBackup = async (jsonString: string): Promise<{ succe
     if (backup.data.goals && backup.data.goals.length > 0) {
       await db.goals.bulkPut(backup.data.goals);
     }
-    if (backup.data.settings) {
-      await db.meta.put({
-        key: 'settings',
-        value: {
-          ...backup.data.settings,
-          last_cloud_backup_at: new Date().toISOString(),
-        },
-      });
-    }
+    const mergedSettings = {
+      ...(backup.data.settings || {}),
+      onboarding_completed: true,
+      is_demo_mode: false,
+      last_cloud_backup_at: new Date().toISOString(),
+    };
+    await db.meta.put({
+      key: 'settings',
+      value: mergedSettings,
+    });
 
     return {
       success: true,

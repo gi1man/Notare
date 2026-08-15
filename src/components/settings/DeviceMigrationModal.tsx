@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { exportMigrationFile, importMigrationBackup } from '../../db/cloudBackup';
+import { useApp } from '../../context/AppContext';
 import { Cloud, Download, Upload, Smartphone, CheckCircle2, AlertCircle, X, ShieldCheck } from 'lucide-react';
 
 interface DeviceMigrationModalProps {
@@ -9,6 +10,7 @@ interface DeviceMigrationModalProps {
 }
 
 export const DeviceMigrationModal: React.FC<DeviceMigrationModalProps> = ({ onClose }) => {
+  const { updateSettings } = useApp();
   const categoryCount = useLiveQuery(() => db.categories.count()) || 0;
   const entryCount = useLiveQuery(() => db.entries.count()) || 0;
   const goalCount = useLiveQuery(() => db.goals.count()) || 0;
@@ -39,10 +41,14 @@ export const DeviceMigrationModal: React.FC<DeviceMigrationModalProps> = ({ onCl
       if (confirm('Restoring a migration backup will replace local data with your backup file. Continue?')) {
         const result = await importMigrationBackup(jsonString);
         if (result.success) {
+          await updateSettings({ onboarding_completed: true, is_demo_mode: false });
           setRestoreStatus({
             type: 'success',
             message: `Restored ${result.count.entries} entries, ${result.count.categories} categories, and ${result.count.goals} goals!`,
           });
+          setTimeout(() => {
+            window.location.reload();
+          }, 1200);
         } else {
           setRestoreStatus({
             type: 'error',
