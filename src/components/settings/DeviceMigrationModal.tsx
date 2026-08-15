@@ -159,7 +159,7 @@ export const DeviceMigrationModal: React.FC<DeviceMigrationModalProps> = ({ onCl
             <Upload className="w-4 h-4" /> Select Backup File to Restore
             <input
               type="file"
-              accept=".json"
+              accept=".json,application/json,text/plain,*/*"
               onChange={handleFileChange}
               className="hidden"
             />
