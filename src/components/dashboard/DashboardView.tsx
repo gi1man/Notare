@@ -71,6 +71,9 @@ export const DashboardView: React.FC = () => {
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
             Trends, activity streaks, and data export
           </p>
+          <p className="text-[10px] font-mono text-slate-400 dark:text-slate-500 mt-0.5">
+            build v2.0 • {new Date().toLocaleDateString()}
+          </p>
         </div>
 
         <button
