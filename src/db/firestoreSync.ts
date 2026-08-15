@@ -23,8 +23,10 @@ export const initFirebaseAuthAndSync = (onUserChanged?: (user: any) => void) => 
     if (user) {
       currentUser = user;
       if (onUserChanged) onUserChanged(user);
-      // Perform initial background sync on auth ready
-      await pullCloudDataToLocal(user.uid);
+      // Push local data first (preserves offline entries), then pull cloud data
+      if (!user.isAnonymous) {
+        await reconcileSync(user.uid);
+      }
     } else {
       try {
         const credential = await signInAnonymously(auth);
@@ -35,6 +37,28 @@ export const initFirebaseAuthAndSync = (onUserChanged?: (user: any) => void) => 
       }
     }
   });
+
+  // When device comes back online, push any entries logged while offline
+  window.addEventListener('online', async () => {
+    if (currentUser && !currentUser.isAnonymous) {
+      await reconcileSync(currentUser.uid);
+    }
+  });
+};
+
+// Push all local data up, then pull cloud data down
+// merge:true ensures new local entries are created in cloud without overwriting newer cloud data
+const reconcileSync = async (userId: string) => {
+  if (isSyncing) return;
+  isSyncing = true;
+  try {
+    await pushAllLocalDataToCloud(userId);
+    await pullCloudDataToLocal(userId);
+  } catch (err) {
+    console.warn('Sync reconciliation deferred:', err);
+  } finally {
+    isSyncing = false;
+  }
 };
 
 export const getCurrentUser = () => currentUser;
