@@ -1,6 +1,6 @@
 // Notare Service Worker — Network-First with Offline Fallback
 // Bump APP_VERSION on every deploy so Chrome detects an updated SW.
-const APP_VERSION = '2.0.0';
+const APP_VERSION = '2.1.0';
 const CACHE_NAME = `notare-${APP_VERSION}`;
 
 // Only pre-cache the bare minimum needed for offline shell

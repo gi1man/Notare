@@ -177,7 +177,7 @@ export const SettingsModal: React.FC = () => {
         </div>
 
         <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-          Create an account or sign in with a custom password (letters, numbers, and special characters supported) to sync your goals and logs between 2 or more phones.
+          Create an account or Sign In with Email & Custom Password (letters, numbers, and special characters supported) to sync your goals and logs between 2 or more phones.
         </p>
 
         <form className="space-y-3 pt-1">
@@ -247,7 +247,7 @@ export const SettingsModal: React.FC = () => {
               className="py-3 px-4 bg-[#0F4C45] hover:bg-[#135c54] disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 tap-target"
             >
               <Smartphone className="w-4 h-4 text-[#8FA99B]" />
-              Link 2nd Device / Sign In
+              Sign In
             </button>
           </div>
 

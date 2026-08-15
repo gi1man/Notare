@@ -53,7 +53,7 @@ export const registerWithEmailPassword = async (email: string, pass: string) => 
     } catch (linkErr: any) {
       // If linking fails (e.g., email already in use), fall back to new account
       if (linkErr.code === 'auth/email-already-in-use') {
-        throw new Error('This email is already registered. Use "Link 2nd Device" to sign in.');
+        throw new Error('This email is already registered. Use "Sign In" to access your account.');
       }
       const credential = await createUserWithEmailAndPassword(auth, email, pass);
       user = credential.user;
@@ -77,7 +77,7 @@ export const registerWithEmailPassword = async (email: string, pass: string) => 
   return user;
 };
 
-// Sign In on 2nd Phone with Email & Custom Password
+// Sign In with Email & Custom Password
 export const signInWithEmailPassword = async (email: string, pass: string) => {
   const credential = await signInWithEmailAndPassword(auth, email, pass);
   currentUser = credential.user;
