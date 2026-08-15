@@ -6,7 +6,6 @@ import { IconRenderer } from '../common/IconRenderer';
 import { GoalEditorModal } from '../goals/GoalEditorModal';
 import { GoalDonutCharts } from './GoalDonutCharts';
 import { GroupedGoalPerformanceChart } from './GroupedGoalPerformanceChart';
-import { GoalOverviewSection } from './GoalOverviewSection';
 import { GoalTrendSection } from './GoalTrendSection';
 import { generateDummyData } from '../../db/dummyDataGenerator';
 import { Flame, Trophy, Target, Sparkles } from 'lucide-react';
@@ -131,13 +130,6 @@ export const DashboardView: React.FC = () => {
         goals={goals || []}
         entries={entries || []}
         categories={categories || []}
-      />
-
-      {/* Goal Overview Section (Subcategories on X-Axis, Percent Complete on Y-Axis) */}
-      <GoalOverviewSection
-        categories={categories || []}
-        entries={entries || []}
-        goals={goals || []}
       />
 
       {/* Goal Trend Section (Past 30 Days / 12 Weeks / 12 Months Trellised Bar Chart) */}
