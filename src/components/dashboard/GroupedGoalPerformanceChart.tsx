@@ -149,7 +149,15 @@ export const GroupedGoalPerformanceChart: React.FC<GroupedGoalPerformanceChartPr
   ].filter((fg) => fg.categoryGroups.length > 0);
 
   if (frequencyGroups.length === 0) {
-    return null;
+    return (
+      <div className="card-parchment p-8 rounded-2xl shadow-sm text-center space-y-2">
+        <BarChart3 className="w-10 h-10 text-slate-400 mx-auto" />
+        <h4 className="font-bold text-base text-slate-800 dark:text-slate-200">No Goal Breakdown Available Yet</h4>
+        <p className="text-xs text-slate-500 max-w-xs mx-auto">
+          Set daily, weekly, or monthly goals to see your performance breakdown!
+        </p>
+      </div>
+    );
   }
 
   return (
