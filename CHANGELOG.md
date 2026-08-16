@@ -2,6 +2,24 @@
 
 All notable changes to Notare are documented in this file.
 
+## [2.2.0] — 2026-08-15
+
+### Added
+- **Share Card** — canvas-rendered branded goal summary card (1080×1350) with progress rings, goal bars, and Notare branding; shares via Web Share API on mobile, downloads PNG on desktop
+- **Sign Out** — `signOutUser()` function and Sign Out button in Settings
+- **Adaptive Account card** — Settings account section now shows different UI for signed-in vs anonymous users: signed-in users see their email, change password, and sign out; anonymous users see the registration/sign-in form
+
+### Changed
+- **Sync indicator simplified** — replaced 4 icons (spinner, check, wifi-off, cloud) with a single Cloud icon in 3 colors: green (online), blue pulsing (syncing), gray (offline)
+- **Dashboard section titles renamed** — donut charts now "Goals Summary", bar charts now "Individual Goals"
+- **Account section title** — renamed from "Multi-Device Sync & Account Backup" to "Account" with shorter description
+
+### Removed
+- **Goal Trend Section** — removed `GoalTrendSection` component render from dashboard
+- **Past Week Activity Summaries** — removed weekly activity card grid from dashboard
+- **Cloud Backup menu** — consolidated into Settings "Backup & Export" section
+- **DeviceMigrationModal** — removed from Header; restore functionality moved inline to Settings
+
 ## [2.1.0] — 2026-08-15
 
 ### Security

@@ -7,6 +7,7 @@ A frictionless, offline-first PWA for tracking daily habits, wellness activities
 - **Offline-first** — all data stored locally in IndexedDB via Dexie.js; works without internet
 - **Cloud sync** — optional Firebase Auth + Firestore for multi-device sync
 - **Goal tracking** — daily, weekly, and monthly goals with progress charts
+- **Share cards** — branded visual goal summary cards shared via Web Share API
 - **Voice logging** — Web Speech API for hands-free entry notes
 - **Community insights** — anonymized aggregate benchmarks (opt-in telemetry)
 - **PWA / WebAPK** — installable on Android and iOS home screens
@@ -46,22 +47,24 @@ npm run build
 src/
 ├── components/
 │   ├── common/          # Header, ErrorBoundary, DemoBanner, icons
-│   ├── dashboard/       # Goal charts, donut charts, trend section
+│   ├── dashboard/       # DashboardView, GoalDonutCharts, GroupedGoalPerformanceChart
 │   ├── entry/           # CategoryPicker, EntryForm, OnboardingWizard
 │   ├── goals/           # GoalEditorModal
 │   ├── history/         # HistoryList, EditEntryModal
 │   ├── insights/        # InsightsView, community benchmarks
-│   └── settings/        # SettingsModal, DeviceMigrationModal
+│   └── settings/        # SettingsModal (account, backup, export, preferences)
 ├── context/
 │   └── AppContext.tsx    # Global state, settings, undo system
 ├── db/
 │   ├── index.ts         # Dexie schema (v1 + v2 with migration guide)
-│   ├── firestoreSync.ts # Auth, cloud push/pull, batch writes
+│   ├── firestoreSync.ts # Auth, cloud push/pull, batch writes, sign out
 │   ├── exportData.ts    # JSON full backup + CSV export
 │   ├── firebaseConfig.ts
 │   ├── communityTelemetry.ts
 │   ├── dummyDataGenerator.ts
 │   └── insightsEngine.ts
+├── utils/
+│   └── shareCard.ts     # Canvas share card generator + Web Share API
 ├── types.ts             # TypeScript interfaces
 └── main.tsx             # App entry with ErrorBoundary
 ```
