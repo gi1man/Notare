@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Goal, Entry, Category } from '../../types';
 import { IconRenderer } from '../common/IconRenderer';
-import { X, CheckCircle2, AlertCircle, PieChart } from 'lucide-react';
+import { X, CheckCircle2, AlertCircle, PieChart, Share2 } from 'lucide-react';
+import { shareGoalSummaryCard } from '../../utils/shareCard';
 
 interface GoalDonutChartsProps {
   goals: Goal[];
@@ -263,6 +264,19 @@ export const GoalDonutCharts: React.FC<GoalDonutChartsProps> = ({ goals, entries
         <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <PieChart className="w-6 h-6 text-sky-600 dark:text-sky-400" /> Goal Performance (Average % Met)
         </h3>
+        {hasAnyGoals && (
+          <button
+            onClick={() => shareGoalSummaryCard({
+              daily: { items: dailyProgressList, averagePct: dailyAveragePct },
+              weekly: { items: weeklyProgressList, averagePct: weeklyAveragePct },
+              monthly: { items: monthlyProgressList, averagePct: monthlyAveragePct },
+            })}
+            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-colors tap-target"
+            title="Share goal progress"
+          >
+            <Share2 className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {!hasAnyGoals ? (
