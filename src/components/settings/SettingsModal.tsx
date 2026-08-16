@@ -13,6 +13,8 @@ import {
   signInWithEmailPassword,
   changeUserPassword,
   resetPasswordByEmail,
+  getCurrentUser,
+  signOutUser,
 } from '../../db/firestoreSync';
 import {
   Settings,
@@ -28,12 +30,10 @@ import {
   Folder,
   RotateCcw,
   Sparkles,
-  Cloud,
   Download,
   FileSpreadsheet,
   FileCode,
   UserCheck,
-  Smartphone,
   KeyRound,
 } from 'lucide-react';
 
@@ -166,125 +166,176 @@ export const SettingsModal: React.FC = () => {
         </p>
       </div>
 
-      {/* 🔐 Cloud Sync & Multi-Device Password Link Card */}
+      {/* 🔐 Account Card — adapts to auth state */}
       <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5 text-slate-900 dark:text-white font-extrabold text-lg">
-            <Cloud className="w-6 h-6 text-sky-600 dark:text-sky-400" />
-            <span>Multi-Device Sync & Account Backup</span>
-          </div>
-          <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-            Active ✓
-          </span>
+          <h3 className="flex items-center gap-2.5 text-slate-900 dark:text-white font-extrabold text-lg">
+            <UserCheck className="w-6 h-6 text-sky-600 dark:text-sky-400" />
+            Account
+          </h3>
+          {getCurrentUser() && !getCurrentUser()?.isAnonymous ? (
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              Signed In ✓
+            </span>
+          ) : (
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400">
+              Not Signed In
+            </span>
+          )}
         </div>
 
-        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-          Create an account or Sign In with Email & Custom Password (letters, numbers, and special characters supported) to sync your goals and logs between 2 or more phones.
-        </p>
-
-        <form className="space-y-3 pt-1">
-          <div className="space-y-1">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Email / Username
-            </label>
-            <input
-              type="email"
-              placeholder="e.g. name@example.com"
-              value={syncEmail}
-              onChange={(e) => setSyncEmail(e.target.value)}
-              className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 font-semibold text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500"
-            />
+        {authStatus.message && (
+          <div
+            className={`p-3 rounded-xl text-xs font-bold ${
+              authStatus.type === 'success'
+                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+            }`}
+          >
+            {authStatus.message}
           </div>
+        )}
 
-          <div className="space-y-1">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Custom Password (Letters, Numbers, Special Chars)
-            </label>
-            <div className="relative">
-              <input
-                type={showSyncPassword ? 'text' : 'password'}
-                placeholder="e.g. MyPass#2026!"
-                value={syncPassword}
-                onChange={(e) => setSyncPassword(e.target.value)}
-                className="w-full p-3 pr-10 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 font-semibold text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500"
-              />
-              <button
-                type="button"
-                onClick={() => setShowSyncPassword(!showSyncPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                title={showSyncPassword ? 'Hide password' : 'Show password'}
-              >
-                {showSyncPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
+        {getCurrentUser() && !getCurrentUser()?.isAnonymous ? (
+          /* ── Signed In View ── */
+          <div className="space-y-4">
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              {getCurrentUser()?.email}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Your data syncs automatically across all devices signed into this account.
+            </p>
 
-          {authStatus.message && (
-            <div
-              className={`p-3 rounded-xl text-xs font-bold ${
-                authStatus.type === 'success'
-                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                  : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-              }`}
-            >
-              {authStatus.message}
-            </div>
-          )}
+            {/* Change Password */}
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-700 space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <KeyRound className="w-4 h-4 text-amber-500" /> Change Password
+              </label>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            <button
-              type="button"
-              onClick={handleRegisterAccount}
-              disabled={isAuthSubmitting || !syncEmail || !syncPassword}
-              className="py-3 px-4 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 tap-target"
-            >
-              <UserCheck className="w-4 h-4" />
-              Create Sync Account
-            </button>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    placeholder="Enter new password..."
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    className="w-full p-3 pr-10 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 font-semibold text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
 
-            <button
-              type="button"
-              onClick={handleSignInAccount}
-              disabled={isAuthSubmitting || !syncEmail || !syncPassword}
-              className="py-3 px-4 bg-[#0F4C45] hover:bg-[#135c54] disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 tap-target"
-            >
-              <Smartphone className="w-4 h-4 text-[#8FA99B]" />
-              Sign In
-            </button>
-          </div>
-
-          {/* Change Password Section */}
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-2">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-              <KeyRound className="w-4 h-4 text-amber-500" /> Change Account Password
-            </label>
-
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <input
-                  type={showNewPassword ? 'text' : 'password'}
-                  placeholder="Enter new password..."
-                  value={newPasswordInput}
-                  onChange={(e) => setNewPasswordInput(e.target.value)}
-                  className="w-full p-3 pr-10 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 font-semibold text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
-                />
                 <button
                   type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                  title={showNewPassword ? 'Hide password' : 'Show password'}
+                  onClick={handleChangePassword}
+                  disabled={isAuthSubmitting || !newPasswordInput}
+                  className="py-3 px-4 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 shrink-0 tap-target"
                 >
-                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  Update
                 </button>
               </div>
 
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const email = getCurrentUser()?.email;
+                    if (!email) return;
+                    try {
+                      await resetPasswordByEmail(email);
+                      setAuthStatus({ type: 'success', message: `Password reset email sent to ${email}.` });
+                    } catch (err: any) {
+                      setAuthStatus({ type: 'error', message: err.message || 'Failed to send reset email.' });
+                    }
+                  }}
+                  className="text-xs font-semibold text-slate-500 hover:text-[#0F4C45] dark:text-slate-400 dark:hover:text-sky-400 transition-colors"
+                >
+                  Forgot Password?
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (confirm('Sign out of your account on this device?')) {
+                      try {
+                        await signOutUser();
+                        setAuthStatus({ type: 'success', message: 'Signed out. Your data is still saved locally.' });
+                      } catch (err: any) {
+                        setAuthStatus({ type: 'error', message: err.message || 'Failed to sign out.' });
+                      }
+                    }
+                  }}
+                  className="text-xs font-semibold text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* ── Not Signed In View ── */
+          <form className="space-y-3">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Create an account to sync your data across devices, or sign in to restore your data on a new phone.
+            </p>
+
+            <div className="space-y-1">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Email
+              </label>
+              <input
+                type="email"
+                placeholder="e.g. name@example.com"
+                value={syncEmail}
+                onChange={(e) => setSyncEmail(e.target.value)}
+                className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 font-semibold text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showSyncPassword ? 'text' : 'password'}
+                  placeholder="Min 6 characters"
+                  value={syncPassword}
+                  onChange={(e) => setSyncPassword(e.target.value)}
+                  className="w-full p-3 pr-10 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 font-semibold text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSyncPassword(!showSyncPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                >
+                  {showSyncPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-1">
               <button
                 type="button"
-                onClick={handleChangePassword}
-                disabled={isAuthSubmitting || !newPasswordInput}
-                className="py-3 px-4 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 shrink-0 tap-target"
+                onClick={handleRegisterAccount}
+                disabled={isAuthSubmitting || !syncEmail || !syncPassword}
+                className="py-3 px-4 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 tap-target"
               >
-                Update Password
+                Create Account
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSignInAccount}
+                disabled={isAuthSubmitting || !syncEmail || !syncPassword}
+                className="py-3 px-4 bg-[#0F4C45] hover:bg-[#135c54] disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 tap-target"
+              >
+                Sign In
               </button>
             </div>
 
@@ -306,8 +357,8 @@ export const SettingsModal: React.FC = () => {
             >
               Forgot Password?
             </button>
-          </div>
-        </form>
+          </form>
+        )}
       </div>
 
       {/* iOS Installation Prompt Card */}

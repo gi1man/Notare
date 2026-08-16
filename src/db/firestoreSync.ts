@@ -9,6 +9,7 @@ import {
   sendEmailVerification,
   EmailAuthProvider,
   linkWithCredential,
+  signOut,
 } from 'firebase/auth';
 import { doc, setDoc, getDocs, collection, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db } from './index';
@@ -147,6 +148,11 @@ export const changeUserPassword = async (newPass: string) => {
 // Send Password Reset Email
 export const resetPasswordByEmail = async (email: string) => {
   await sendPasswordResetEmail(auth, email);
+};
+
+export const signOutUser = async () => {
+  await signOut(auth);
+  currentUser = null;
 };
 
 // Push all local Dexie items to Cloud using batched writes
