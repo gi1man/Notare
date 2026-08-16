@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { db } from '../../db';
 import { clearDemoData } from '../../db/dummyDataGenerator';
 import { Sparkles, Trash2 } from 'lucide-react';
 
 export const DemoBanner: React.FC = () => {
-  const { settings, updateSettings, resetToCategoryPicker } = useApp();
+  const { settings, updateSettings, resetToCategoryPicker, setActiveTab } = useApp();
   const [isClearing, setIsClearing] = useState(false);
 
   if (!settings.is_demo_mode) return null;
@@ -15,8 +16,20 @@ export const DemoBanner: React.FC = () => {
 
     try {
       await clearDemoData();
-      await updateSettings({ onboarding_completed: false, is_demo_mode: false });
-      resetToCategoryPicker();
+      
+      // Check if user has any real data left
+      const remainingGoals = await db.goals.filter(g => !g.is_demo).count();
+      const remainingEntries = await db.entries.filter(e => !e.is_demo).count();
+      
+      if (remainingGoals > 0 || remainingEntries > 0) {
+        // Has real data -> Go to dashboard
+        await updateSettings({ is_demo_mode: false });
+        setActiveTab('dashboard');
+      } else {
+        // No real data -> Back to onboarding
+        await updateSettings({ onboarding_completed: false, is_demo_mode: false });
+        resetToCategoryPicker();
+      }
     } catch (err) {
       console.error('Failed to exit demo mode:', err);
     } finally {

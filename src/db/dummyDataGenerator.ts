@@ -11,13 +11,16 @@ export const generateDummyData = async () => {
   );
   await db.goals.filter((g) => g.is_demo === true).delete();
 
-  // 1. Ensure starter categories are loaded and marked with is_demo: true
+  // 1. Ensure starter categories are loaded, but preserve them as permanent (non-demo) data
+  // Also only put if they don't exist, so we don't overwrite user edits to starter categories.
   for (const cat of STARTER_CATEGORIES) {
-    await db.categories.put({
-      ...cat,
-      is_demo: true,
-      deleted_at: null,
-    });
+    const existing = await db.categories.get(cat.id);
+    if (!existing) {
+      await db.categories.put({
+        ...cat,
+        deleted_at: null,
+      });
+    }
   }
 
   // 2. Seed default goals across Daily, Weekly, and Monthly frequencies with is_demo: true
