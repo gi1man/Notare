@@ -262,7 +262,7 @@ export const GoalDonutCharts: React.FC<GoalDonutChartsProps> = ({ goals, entries
       {/* Title */}
       <div className="flex items-center justify-between">
         <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <PieChart className="w-6 h-6 text-sky-600 dark:text-sky-400" /> Goal Performance (Average % Met)
+          <PieChart className="w-6 h-6 text-sky-600 dark:text-sky-400" /> Goals Summary
         </h3>
         {hasAnyGoals && (
           <button

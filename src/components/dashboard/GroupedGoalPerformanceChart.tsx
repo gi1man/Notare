@@ -188,7 +188,7 @@ export const GroupedGoalPerformanceChart: React.FC<GroupedGoalPerformanceChartPr
         <div>
           <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <BarChart3 className="w-6 h-6 text-[#0F4C45] dark:text-emerald-400" />
-            Goal Performance Breakdown
+            Individual Goals
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Grouped by frequency and category (0% – 100% completion target)
