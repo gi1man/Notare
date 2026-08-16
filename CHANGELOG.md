@@ -38,6 +38,10 @@ All notable changes to Notare are documented in this file.
 - Fixed `updated_at` timestamp using user-selected date instead of current time
 - Fixed undo toast crashing offline — cloud delete wrapped in try/catch
 - Fixed voice transcript dropping earlier words — now accumulates all final + interim results
+- Fixed Demo Mode cleanup logic to preserve user-created manual goals that overlap with starter categories
+- Fixed `EntryForm` default logging values to dynamically pull from goal targets for custom units (like steps, pages) rather than forcing `1`
+- Fixed Goal Wizard improperly classifying custom units (e.g. 'pages') as duration targets instead of count targets
+- Fixed a bug in the Goal Wizard where backspacing the target amount left an undeletable leading zero
 
 ### Performance
 - Wrapped chart goal computation in `useMemo` (O(N×M) on every render → memoized)
