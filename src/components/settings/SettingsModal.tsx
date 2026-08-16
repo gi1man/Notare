@@ -601,6 +601,7 @@ export const SettingsModal: React.FC = () => {
           <button
             onClick={async () => {
               await generateDummyData();
+              await updateSettings({ is_demo_mode: true });
               alert('Loaded 14 days of sample entries and goals! Check your Dashboard and History.');
             }}
             className="py-3 px-4 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-bold rounded-xl text-sm transition-all tap-target flex items-center justify-center gap-2"

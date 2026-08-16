@@ -11,7 +11,7 @@ import { Flame, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const DashboardView: React.FC = () => {
-  const { settings } = useApp();
+  const { settings, updateSettings } = useApp();
   const [editingGoalSub, setEditingGoalSub] = useState<Category | null>(null);
 
   const categories = useLiveQuery(
@@ -77,6 +77,7 @@ export const DashboardView: React.FC = () => {
         <button
           onClick={async () => {
             await generateDummyData();
+            await updateSettings({ is_demo_mode: true });
             alert('Loaded 14 days of sample entries and goals!');
           }}
           className="px-3.5 py-2 bg-emerald-100 dark:bg-emerald-950/60 hover:bg-emerald-200 text-emerald-800 dark:text-emerald-300 font-bold text-xs rounded-xl transition-all tap-target flex items-center gap-1.5 shadow-sm"
