@@ -48,7 +48,17 @@ export const EntryForm: React.FC = () => {
         .equals(selectedSubcategory.id)
         .first();
       if (existingGoal && existingGoal.target_value) {
-        setNumValue(String(existingGoal.target_value));
+        if (existingGoal.target_type === 'count') {
+          setNumValue('1');
+        } else {
+          setNumValue(String(existingGoal.target_value));
+        }
+      } else if (selectedSubcategory.value_schema) {
+        if (selectedSubcategory.value_schema.type === 'count') {
+          setNumValue('1');
+        } else if (selectedSubcategory.value_schema.type === 'duration') {
+          setNumValue('30');
+        }
       }
     };
     fetchGoalTarget();
