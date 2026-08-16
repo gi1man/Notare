@@ -11,13 +11,15 @@ export const generateDummyData = async () => {
   );
   await db.goals.filter((g) => g.is_demo === true).delete();
 
-  // 1. Ensure starter categories are loaded, but preserve them as permanent (non-demo) data
-  // Also only put if they don't exist, so we don't overwrite user edits to starter categories.
+  // 1. Load starter categories for the demo.
+  // CRITICAL: Only add them if they don't already exist, and mark them is_demo: true.
+  // This ensures they get cleaned up when exiting demo mode, WITHOUT overwriting/deleting categories the user is actively using.
   for (const cat of STARTER_CATEGORIES) {
     const existing = await db.categories.get(cat.id);
     if (!existing) {
       await db.categories.put({
         ...cat,
+        is_demo: true,
         deleted_at: null,
       });
     }
