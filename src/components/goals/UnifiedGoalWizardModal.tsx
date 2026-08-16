@@ -98,7 +98,7 @@ export const UnifiedGoalWizardModal: React.FC<UnifiedGoalWizardModalProps> = ({
   const [itemIcon, setItemIcon] = useState<string>('Activity');
   const [showItemIconPicker, setShowItemIconPicker] = useState<boolean>(false);
 
-  const [targetVal, setTargetVal] = useState<number>(30);
+  const [targetVal, setTargetVal] = useState<string | number>('30');
   const [targetUnit, setTargetUnit] = useState<string>('mins');
   const [frequency, setFrequency] = useState<GoalFrequency>('daily');
   const [direction, setDirection] = useState<GoalDirection>('at_least');
@@ -413,7 +413,7 @@ export const UnifiedGoalWizardModal: React.FC<UnifiedGoalWizardModalProps> = ({
                     min="1"
                     required
                     value={targetVal}
-                    onChange={(e) => setTargetVal(Number(e.target.value))}
+                    onChange={(e) => setTargetVal(e.target.value)}
                     className="w-24 p-3 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 font-bold text-lg text-slate-900 dark:text-white"
                   />
                   <input
