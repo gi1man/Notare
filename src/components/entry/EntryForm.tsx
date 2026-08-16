@@ -47,17 +47,21 @@ export const EntryForm: React.FC = () => {
         .where('subcategory_id')
         .equals(selectedSubcategory.id)
         .first();
+      const unit = selectedSubcategory.value_schema?.unit || 'times';
+      
       if (existingGoal && existingGoal.target_value) {
-        if (existingGoal.target_type === 'count') {
+        if (unit === 'times' || unit === 'glasses') {
           setNumValue('1');
         } else {
           setNumValue(String(existingGoal.target_value));
         }
       } else if (selectedSubcategory.value_schema) {
-        if (selectedSubcategory.value_schema.type === 'count') {
+        if (unit === 'times' || unit === 'glasses') {
           setNumValue('1');
         } else if (selectedSubcategory.value_schema.type === 'duration') {
           setNumValue('30');
+        } else {
+          setNumValue(''); // Clear it so they can type their own custom count
         }
       }
     };

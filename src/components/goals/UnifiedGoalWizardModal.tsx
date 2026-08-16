@@ -162,7 +162,7 @@ export const UnifiedGoalWizardModal: React.FC<UnifiedGoalWizardModalProps> = ({
         name: finalItemName,
         icon: itemIcon || (selectedTemplate ? selectedTemplate.icon : 'Activity'),
         value_schema: {
-          type: targetUnit === 'glasses' || targetUnit === 'times' || targetUnit === 'steps' ? 'count' : 'duration',
+          type: targetUnit === 'mins' || targetUnit === 'hours' ? 'duration' : 'count',
           unit: targetUnit || 'mins',
         },
         sort_order: 1,
@@ -178,7 +178,7 @@ export const UnifiedGoalWizardModal: React.FC<UnifiedGoalWizardModalProps> = ({
         subcategory_id: subId,
         frequency,
         direction,
-        target_type: targetUnit === 'glasses' || targetUnit === 'times' || targetUnit === 'steps' ? 'count' : 'time',
+        target_type: targetUnit === 'mins' || targetUnit === 'hours' ? 'time' : 'count',
         target_value: Number(targetVal) || 1,
         is_demo: false,
         updated_at: new Date().toISOString(),
