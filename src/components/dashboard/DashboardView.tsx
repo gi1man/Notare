@@ -2,13 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { Category } from '../../types';
-import { IconRenderer } from '../common/IconRenderer';
 import { GoalEditorModal } from '../goals/GoalEditorModal';
 import { GoalDonutCharts } from './GoalDonutCharts';
 import { GroupedGoalPerformanceChart } from './GroupedGoalPerformanceChart';
-import { GoalTrendSection } from './GoalTrendSection';
 import { generateDummyData } from '../../db/dummyDataGenerator';
-import { Flame, Trophy, Target, Sparkles } from 'lucide-react';
+import { Flame, Sparkles } from 'lucide-react';
 
 import { useApp } from '../../context/AppContext';
 
@@ -29,44 +27,19 @@ export const DashboardView: React.FC = () => {
     [settings.is_demo_mode]
   );
 
-  const { categoryMap, goalMap, totalLogs, logsThisWeek, weeklySubcategoryCounts, activeWeeklySubcategories } = useMemo(() => {
-    const catMap = new Map<string, Category>();
-    categories?.forEach((c) => catMap.set(c.id, c));
-
-    const gMap = new Map<string, any>();
-    goals?.forEach((g) => gMap.set(g.subcategory_id, g));
-
+  const { totalLogs, logsThisWeek } = useMemo(() => {
     const total = entries?.length || 0;
 
-    const now = new Date();
     const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(now.getDate() - 7);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     const weekLogs = entries?.filter((e) => new Date(e.occurred_at) >= sevenDaysAgo).length || 0;
 
-    const subcategories = categories?.filter((c) => c.parent_id !== null) || [];
-
-    const weeklyCounts = new Map<string, number>();
-    entries?.forEach((e) => {
-      if (new Date(e.occurred_at) >= sevenDaysAgo) {
-        const current = weeklyCounts.get(e.subcategory_id) || 0;
-        weeklyCounts.set(e.subcategory_id, current + 1);
-      }
-    });
-
-    const activeWeekly = subcategories.filter(
-      (sub) => (weeklyCounts.get(sub.id) || 0) > 0
-    );
-
     return {
-      categoryMap: catMap,
-      goalMap: gMap,
       totalLogs: total,
       logsThisWeek: weekLogs,
-      weeklySubcategoryCounts: weeklyCounts,
-      activeWeeklySubcategories: activeWeekly,
     };
-  }, [categories, entries, goals]);
+  }, [entries]);
 
   // Loading skeleton while Dexie queries resolve
   if (!categories || !entries || !goals) {
@@ -160,96 +133,7 @@ export const DashboardView: React.FC = () => {
         categories={categories || []}
       />
 
-      {/* Goal Trend Section (Past 30 Days / 12 Weeks / 12 Months Trellised Bar Chart) */}
-      <GoalTrendSection
-        categories={categories || []}
-        entries={entries || []}
-        goals={goals || []}
-      />
 
-      {/* Activity Streaks & Summaries (Past 7 Days) */}
-      <div className="card-parchment p-6 rounded-2xl shadow-sm space-y-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Trophy className="w-6 h-6 text-amber-500" /> Past Week Activity Summaries
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Only showing activities updated in the past 7 days
-            </p>
-          </div>
-        </div>
-
-        {activeWeeklySubcategories.length === 0 ? (
-          <div className="text-center py-8 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 p-6 text-slate-500 dark:text-slate-400 text-sm">
-            No activities logged in the past week yet! Log an entry to see your weekly summary here.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {activeWeeklySubcategories.map((sub) => {
-              const count = weeklySubcategoryCounts.get(sub.id) || 0;
-              const parentCat = categoryMap.get(sub.parent_id || '');
-              const goal = goalMap.get(sub.id);
-
-              return (
-                <div
-                  key={sub.id}
-                  className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex flex-col justify-between gap-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2.5 rounded-lg bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300">
-                        <IconRenderer name={sub.icon || parentCat?.icon || 'Activity'} className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="font-bold text-slate-900 dark:text-white text-base">
-                          {sub.name}
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">
-                          {parentCat?.name}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="text-lg font-extrabold text-sky-600 dark:text-sky-400">
-                        {count} {count === 1 ? 'log' : 'logs'}
-                      </div>
-                      <div className="text-xs text-slate-500">Past 7 days</div>
-                    </div>
-                  </div>
-
-                  {/* Goal Status Badge & Edit Button */}
-                  <div className="flex items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-2 text-xs">
-                    {goal ? (
-                      <span
-                        className={`inline-flex items-center gap-1 font-bold px-2.5 py-1 rounded-md ${
-                          goal.direction === 'at_least'
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                        }`}
-                      >
-                        <Target className="w-3.5 h-3.5" />
-                        Goal: {goal.direction === 'at_least' ? '≥' : '≤'} {goal.target_value} {goal.target_type === 'time' ? 'm' : 'x'}/{goal.frequency === 'daily' ? 'day' : goal.frequency === 'weekly' ? 'week' : 'month'}
-                      </span>
-                    ) : (
-                      <span className="text-slate-400 font-medium italic">No goal set</span>
-                    )}
-
-                    <button
-                      onClick={() => setEditingGoalSub(sub)}
-                      className="font-bold text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1"
-                    >
-                      <Target className="w-3.5 h-3.5" />
-                      {goal ? 'Edit Goal' : 'Set Goal'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
 
       {/* Goal Editor Modal */}
       {editingGoalSub && (
