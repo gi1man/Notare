@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
-import { Category, Goal, GoalFrequency } from '../../types';
+import { Category, Goal, GoalFrequency, GoalDirection } from '../../types';
 import { clearDemoData } from '../../db/dummyDataGenerator';
 import { syncCategoryToCloud, syncGoalToCloud } from '../../db/firestoreSync';
 import { IconRenderer } from '../common/IconRenderer';
@@ -101,6 +101,7 @@ export const UnifiedGoalWizardModal: React.FC<UnifiedGoalWizardModalProps> = ({
   const [targetVal, setTargetVal] = useState<number>(30);
   const [targetUnit, setTargetUnit] = useState<string>('mins');
   const [frequency, setFrequency] = useState<GoalFrequency>('daily');
+  const [direction, setDirection] = useState<GoalDirection>('at_least');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const handleSelectTemplate = (tmpl: CategoryTemplate) => {
@@ -176,7 +177,7 @@ export const UnifiedGoalWizardModal: React.FC<UnifiedGoalWizardModalProps> = ({
         id: `goal-${Date.now()}`,
         subcategory_id: subId,
         frequency,
-        direction: 'at_least',
+        direction,
         target_type: targetUnit === 'glasses' || targetUnit === 'times' || targetUnit === 'steps' ? 'count' : 'time',
         target_value: Number(targetVal) || 1,
         is_demo: false,
@@ -348,6 +349,35 @@ export const UnifiedGoalWizardModal: React.FC<UnifiedGoalWizardModalProps> = ({
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               3. Target Goal Amount & Unit
             </label>
+
+            {/* Goal Direction (Encourage vs Limit) */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setDirection('at_least')}
+                className={`p-3 rounded-xl border-2 font-bold text-xs flex flex-col items-center gap-1 transition-all tap-target ${
+                  direction === 'at_least'
+                    ? 'border-emerald-600 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                <span>At Least (Encourage)</span>
+                <span className="text-[10px] font-normal opacity-80">e.g. Walk ≥ 30 mins</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDirection('at_most')}
+                className={`p-3 rounded-xl border-2 font-bold text-xs flex flex-col items-center gap-1 transition-all tap-target ${
+                  direction === 'at_most'
+                    ? 'border-amber-600 bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                <span>At Most (Limit Cap)</span>
+                <span className="text-[10px] font-normal opacity-80">e.g. TV ≤ 60 mins</span>
+              </button>
+            </div>
 
             {/* Default Unit Chips */}
             <div className="space-y-1.5">
