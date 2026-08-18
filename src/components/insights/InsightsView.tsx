@@ -20,7 +20,6 @@ import {
   Zap,
   Clock,
   PieChart,
-  Heart,
   Telescope,
   Globe,
   RefreshCw,
