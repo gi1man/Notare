@@ -304,22 +304,18 @@ export const InsightsView: React.FC = () => {
       </div>
 
       {/* 🔭 Rotating Long-Term Trend */}
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-6">
-        <div>
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Telescope className="w-6 h-6 text-indigo-500" />
-            Long-Term Trends
-          </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Automatically discovering long-term behavioral patterns (requires 4+ weeks of history)
-          </p>
-        </div>
-
-        {!longTermTrend ? (
-          <div className="text-center py-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl text-slate-400 text-xs italic border border-dashed border-slate-200 dark:border-slate-700">
-            Keep logging! We need at least 4 weeks of consistent history for a habit to uncover long-term trends.
+      {longTermTrend && (
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-6">
+          <div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Telescope className="w-6 h-6 text-indigo-500" />
+              Long-Term Trends
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Automatically discovering long-term behavioral patterns (requires 4+ weeks of history)
+            </p>
           </div>
-        ) : (
+
           <div className="p-5 rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/50 dark:bg-indigo-950/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start gap-4">
               <div className="p-3 rounded-2xl bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 shrink-0">
@@ -343,8 +339,8 @@ export const InsightsView: React.FC = () => {
               </span>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* 🎡 30-Day Life Category Balance Distribution */}
       <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-5">
