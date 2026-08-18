@@ -21,7 +21,6 @@ import {
   Clock,
   PieChart,
   Heart,
-  Heart,
   Telescope,
   Globe,
   RefreshCw,
