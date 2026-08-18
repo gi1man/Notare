@@ -20,13 +20,14 @@ export interface WeeklyComparisonItem {
   percentChange: number; // positive = growth, negative = drop
 }
 
-export interface CalculatedCorrelation {
+export interface LongTermTrendData {
   id: string;
-  subA: Category;
-  subB: Category;
-  percentage: number;
-  sameDayCount: number;
-  totalDaysA: number;
+  title: string;
+  subtitle: string;
+  description: string;
+  icon: string;
+  colorTheme: 'sky' | 'emerald' | 'amber' | 'violet' | 'rose';
+  stat: string;
 }
 
 export interface MemoryFlashback {
@@ -127,66 +128,174 @@ export const getWeeklyComparisons = (entries: Entry[], categories: Category[]): 
   return results.sort((a, b) => b.thisWeekCount - a.thisWeekCount);
 };
 
-// 2. Automatically Calculate Top 3 & Bottom 3 Pairwise Correlations
-export const getAutomaticCorrelations = (
+// 2. Long-Term Trends (Rotating Spotlight)
+export const getLongTermTrends = (
   entries: Entry[],
   categories: Category[]
-): { top3: CalculatedCorrelation[]; bottom3: CalculatedCorrelation[] } => {
-  const subcategories = categories.filter((c) => c.parent_id !== null && !c.deleted_at);
-  if (subcategories.length < 2 || entries.length === 0) {
-    return { top3: [], bottom3: [] };
-  }
-
-  // Map subcategory -> Set of dates (YYYY-MM-DD)
-  const subDatesMap = new Map<string, Set<string>>();
-  subcategories.forEach((s) => subDatesMap.set(s.id, new Set<string>()));
-
+): LongTermTrendData | null => {
+  const subcategoryMap = new Map<string, Entry[]>();
   entries.forEach((e) => {
     if (e.deleted_at) return;
-    const dateStr = e.occurred_at.slice(0, 10);
-    const set = subDatesMap.get(e.subcategory_id);
-    if (set) set.add(dateStr);
+    const list = subcategoryMap.get(e.subcategory_id) || [];
+    list.push(e);
+    subcategoryMap.set(e.subcategory_id, list);
   });
 
-  const allPairs: CalculatedCorrelation[] = [];
+  const validSubcategoryIds = new Set<string>();
+  const categoryLookup = new Map(categories.map((c) => [c.id, c]));
 
-  for (let i = 0; i < subcategories.length; i++) {
-    for (let j = i + 1; j < subcategories.length; j++) {
-      const subA = subcategories[i];
-      const subB = subcategories[j];
-
-      const datesA = subDatesMap.get(subA.id) || new Set();
-      const datesB = subDatesMap.get(subB.id) || new Set();
-
-      if (datesA.size === 0 || datesB.size === 0) continue;
-
-      let sameDayCount = 0;
-      datesA.forEach((d) => {
-        if (datesB.has(d)) sameDayCount++;
-      });
-
-      // Calculate co-occurrence percentage relative to the min active days of either habit
-      const totalDaysA = Math.max(datesA.size, datesB.size);
-      const percentage = Math.round((sameDayCount / totalDaysA) * 100);
-
-      allPairs.push({
-        id: `${subA.id}-${subB.id}`,
-        subA,
-        subB,
-        percentage,
-        sameDayCount,
-        totalDaysA,
-      });
+  subcategoryMap.forEach((list, subId) => {
+    if (list.length < 2) return;
+    let minT = Infinity;
+    let maxT = -Infinity;
+    list.forEach((e) => {
+      const t = new Date(e.occurred_at).getTime();
+      if (t < minT) minT = t;
+      if (t > maxT) maxT = t;
+    });
+    // Requirement: Must have at least 4 weeks (28 days) of span
+    const daysSpan = (maxT - minT) / (1000 * 60 * 60 * 24);
+    if (daysSpan >= 28) {
+      validSubcategoryIds.add(subId);
     }
+  });
+
+  if (validSubcategoryIds.size === 0) return null;
+
+  const candidates: LongTermTrendData[] = [];
+  const now = new Date();
+
+  // Option 1: Monthly Growth
+  const past30Start = now.getTime() - 30 * 24 * 60 * 60 * 1000;
+  const prev30Start = past30Start - 30 * 24 * 60 * 60 * 1000;
+
+  let topGrowthSub = '';
+  let topGrowthPct = 0;
+  let topGrowthLastCnt = 0;
+  let topGrowthThisCnt = 0;
+
+  validSubcategoryIds.forEach((subId) => {
+    const list = subcategoryMap.get(subId)!;
+    let this30 = 0;
+    let prev30 = 0;
+    list.forEach((e) => {
+      const t = new Date(e.occurred_at).getTime();
+      if (t >= past30Start) this30++;
+      else if (t >= prev30Start && t < past30Start) prev30++;
+    });
+
+    if (prev30 > 0 && this30 > prev30) {
+      const pct = ((this30 - prev30) / prev30) * 100;
+      if (pct > topGrowthPct) {
+        topGrowthPct = pct;
+        topGrowthSub = subId;
+        topGrowthLastCnt = prev30;
+        topGrowthThisCnt = this30;
+      }
+    }
+  });
+
+  if (topGrowthSub) {
+    const sub = categoryLookup.get(topGrowthSub);
+    candidates.push({
+      id: 'monthly-growth',
+      title: `${Math.round(topGrowthPct)}% Monthly Growth`,
+      subtitle: `Long-Term Trend • ${sub?.name}`,
+      description: `You logged this ${topGrowthThisCnt} times in the last 30 days, compared to ${topGrowthLastCnt} times in the 30 days prior.`,
+      icon: 'TrendingUp',
+      colorTheme: 'emerald',
+      stat: `+${Math.round(topGrowthPct)}%`,
+    });
   }
 
-  // Sort by highest co-occurrence percentage
-  allPairs.sort((a, b) => b.percentage - a.percentage);
+  // Option 2: Weekly Consistency Streaks
+  let longestStreakSub = '';
+  let maxConsecutiveWeeks = 0;
 
-  const top3 = allPairs.slice(0, 3);
-  const bottom3 = allPairs.slice(-3).reverse().filter((item) => !top3.some((t) => t.id === item.id));
+  validSubcategoryIds.forEach((subId) => {
+    const list = subcategoryMap.get(subId)!;
+    const weeklyBuckets = new Set<number>();
+    list.forEach((e) => {
+      const t = new Date(e.occurred_at).getTime();
+      const diff = now.getTime() - t;
+      const weeksAgo = Math.floor(diff / (7 * 24 * 60 * 60 * 1000));
+      weeklyBuckets.add(weeksAgo);
+    });
 
-  return { top3, bottom3 };
+    let currentStreak = 0;
+    let w = weeklyBuckets.has(0) ? 0 : 1;
+    while (weeklyBuckets.has(w)) {
+      currentStreak++;
+      w++;
+    }
+
+    if (currentStreak >= 4 && currentStreak > maxConsecutiveWeeks) {
+      maxConsecutiveWeeks = currentStreak;
+      longestStreakSub = subId;
+    }
+  });
+
+  if (longestStreakSub) {
+    const sub = categoryLookup.get(longestStreakSub);
+    candidates.push({
+      id: 'weekly-streak',
+      title: `${maxConsecutiveWeeks} Consecutive Weeks`,
+      subtitle: `Consistency Streak • ${sub?.name}`,
+      description: `You have successfully logged this activity at least once a week for ${maxConsecutiveWeeks} weeks in a row!`,
+      icon: 'CalendarDays',
+      colorTheme: 'sky',
+      stat: `${maxConsecutiveWeeks} wks`,
+    });
+  }
+
+  // Option 3: Peak Performance Days
+  let bestDaySub = '';
+  let bestDayName = '';
+  let bestDayPct = 0;
+  const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  validSubcategoryIds.forEach((subId) => {
+    const list = subcategoryMap.get(subId)!;
+    const past90Start = now.getTime() - 90 * 24 * 60 * 60 * 1000;
+    const dayCounts = [0, 0, 0, 0, 0, 0, 0];
+    let total90 = 0;
+
+    list.forEach((e) => {
+      const d = new Date(e.occurred_at);
+      if (d.getTime() >= past90Start) {
+        dayCounts[d.getDay()]++;
+        total90++;
+      }
+    });
+
+    if (total90 >= 10) {
+      const maxDayVal = Math.max(...dayCounts);
+      const pct = (maxDayVal / total90) * 100;
+      if (pct > 30 && pct > bestDayPct) {
+        bestDayPct = pct;
+        bestDayName = daysOfWeek[dayCounts.indexOf(maxDayVal)];
+        bestDaySub = subId;
+      }
+    }
+  });
+
+  if (bestDaySub) {
+    const sub = categoryLookup.get(bestDaySub);
+    candidates.push({
+      id: 'peak-day',
+      title: `${bestDayName}s are your best day`,
+      subtitle: `Behavioral Trend • ${sub?.name}`,
+      description: `Over the past 90 days, ${Math.round(bestDayPct)}% of your logs for this activity happened on a ${bestDayName}.`,
+      icon: 'BarChart3',
+      colorTheme: 'violet',
+      stat: `${Math.round(bestDayPct)}%`,
+    });
+  }
+
+  if (candidates.length === 0) return null;
+
+  const dateSeed = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+  return candidates[dateSeed % candidates.length];
 };
 
 // 3. Memory Flashbacks ("On This Day")

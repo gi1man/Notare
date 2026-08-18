@@ -5,7 +5,7 @@ import { IconRenderer } from '../common/IconRenderer';
 import {
   getDailyFeaturedInsight,
   getWeeklyComparisons,
-  getAutomaticCorrelations,
+  getLongTermTrends,
   getMemoryFlashbacks,
   DEFAULT_COMMUNITY_INSIGHTS,
   CommunityInsightItem,
@@ -21,8 +21,8 @@ import {
   Clock,
   PieChart,
   Heart,
-  Link,
-  Unlink,
+  Heart,
+  Telescope,
   Globe,
   RefreshCw,
   Bot,
@@ -60,9 +60,9 @@ export const InsightsView: React.FC = () => {
     [entries, categories]
   );
 
-  // Top 3 & Bottom 3 Automatic Correlations
-  const { top3: top3Correlations, bottom3: bottom3Correlations } = useMemo(
-    () => getAutomaticCorrelations(entries || [], categories || []),
+  // Rotating Long-Term Trend (Requires 4+ weeks of data)
+  const longTermTrend = useMemo(
+    () => getLongTermTrends(entries || [], categories || []),
     [entries, categories]
   );
 
@@ -305,88 +305,44 @@ export const InsightsView: React.FC = () => {
         )}
       </div>
 
-      {/* 🔗 Top 3 & Bottom 3 Activity Correlations */}
+      {/* 🔭 Rotating Long-Term Trend */}
       <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-6">
         <div>
           <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Heart className="w-6 h-6 text-rose-500" />
-            Activity Correlations
+            <Telescope className="w-6 h-6 text-indigo-500" />
+            Long-Term Trends
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Automatically discovered same-day habit co-occurrences
+            Automatically discovering long-term behavioral patterns (requires 4+ weeks of history)
           </p>
         </div>
 
-        {/* Top 3 Correlations */}
-        <div className="space-y-3">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-            <Link className="w-4 h-4" /> Top 3 Strongest Associations
-          </h4>
-
-          {top3Correlations.length === 0 ? (
-            <div className="text-xs text-slate-400 italic py-2">
-              Log activities across multiple days to automatically discover top habit associations.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {top3Correlations.map((item) => (
-                <div
-                  key={item.id}
-                  className="p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/50 dark:bg-emerald-950/30 flex items-center justify-between gap-3 text-xs"
-                >
-                  <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white">
-                    <IconRenderer name={item.subA.icon} className="w-4 h-4 text-emerald-600" />
-                    <span>{item.subA.name}</span>
-                    <span className="text-slate-400">&</span>
-                    <IconRenderer name={item.subB.icon} className="w-4 h-4 text-emerald-600" />
-                    <span>{item.subB.name}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-slate-500 font-medium">
-                      Co-occurred on {item.sameDayCount} days
-                    </span>
-                    <span className="px-2.5 py-1 bg-emerald-600 text-white font-extrabold rounded-lg shadow-sm">
-                      {item.percentage}% Same Day
-                    </span>
-                  </div>
+        {!longTermTrend ? (
+          <div className="text-center py-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl text-slate-400 text-xs italic border border-dashed border-slate-200 dark:border-slate-700">
+            Keep logging! We need at least 4 weeks of consistent history for a habit to uncover long-term trends.
+          </div>
+        ) : (
+          <div className="p-5 rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/50 dark:bg-indigo-950/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-2xl bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 shrink-0">
+                <IconRenderer name={longTermTrend.icon} className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <div className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
+                  {longTermTrend.subtitle}
                 </div>
-              ))}
+                <h4 className="text-base font-bold text-slate-900 dark:text-white">
+                  {longTermTrend.title}
+                </h4>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                  {longTermTrend.description}
+                </p>
+              </div>
             </div>
-          )}
-        </div>
-
-        {/* Bottom 3 Correlations */}
-        {bottom3Correlations.length > 0 && (
-          <div className="space-y-3 pt-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-              <Unlink className="w-4 h-4 text-slate-400" /> Lowest Associations (Independent Habits)
-            </h4>
-
-            <div className="space-y-2">
-              {bottom3Correlations.map((item) => (
-                <div
-                  key={item.id}
-                  className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/40 flex items-center justify-between gap-3 text-xs"
-                >
-                  <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200">
-                    <IconRenderer name={item.subA.icon} className="w-4 h-4 text-slate-400" />
-                    <span>{item.subA.name}</span>
-                    <span className="text-slate-400">&</span>
-                    <IconRenderer name={item.subB.icon} className="w-4 h-4 text-slate-400" />
-                    <span>{item.subB.name}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-slate-400 font-medium">
-                      Co-occurred on {item.sameDayCount} days
-                    </span>
-                    <span className="px-2.5 py-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-extrabold rounded-lg">
-                      {item.percentage}% Same Day
-                    </span>
-                  </div>
-                </div>
-              ))}
+            <div className="shrink-0 flex sm:flex-col items-center justify-center gap-2">
+              <span className="px-3 py-1.5 bg-indigo-600 text-white font-extrabold rounded-lg shadow-sm text-sm">
+                {longTermTrend.stat}
+              </span>
             </div>
           </div>
         )}
