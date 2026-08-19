@@ -1,4 +1,4 @@
-import { doc, setDoc, getDocs, collection, increment } from 'firebase/firestore';
+import { doc, getDoc, setDoc, getDocs, collection, increment } from 'firebase/firestore';
 import { firestoreDb } from './firebaseConfig';
 import { CommunityInsightItem } from './insightsEngine';
 
@@ -68,20 +68,20 @@ export const fetchCommunityTotals = async (): Promise<Record<string, AnonymousMe
  */
 export const fetchGlobalCommunityInsights = async (): Promise<CommunityInsightItem[] | null> => {
   try {
-    // We use getDocs to get the collection and find the id since getDoc isn't imported
-    const querySnapshot = await getDocs(collection(firestoreDb, 'global_state'));
-    let insights: CommunityInsightItem[] | null = null;
+    const docRef = doc(firestoreDb, 'global_state', 'community_insights');
+    const docSnap = await getDoc(docRef);
     
-    querySnapshot.forEach((docSnap: any) => {
-      if (docSnap.id === 'community_insights') {
-        const data = docSnap.data();
-        if (data && data.insights) {
-          insights = data.insights as CommunityInsightItem[];
-        }
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      if (data && data.insights) {
+        return (data.insights as CommunityInsightItem[]).map((insight, idx) => ({
+          ...insight,
+          id: insight.id || `remote-insight-${idx}`
+        }));
       }
-    });
+    }
 
-    return insights;
+    return null;
   } catch (err) {
     console.warn('Failed to fetch global community insights:', err);
     return null;

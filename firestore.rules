@@ -18,5 +18,11 @@ service cloud.firestore {
         && request.resource.data.category is string
         && request.resource.data.subcategory is string;
     }
+    match /global_state/{docId} {
+      // Anyone can read global state (such as AI insights)
+      allow read: if true;
+      // Nobody can write from the client (Cloud Functions bypass rules)
+      allow write: if false;
+    }
   }
 }
