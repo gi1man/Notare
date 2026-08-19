@@ -63,19 +63,27 @@ export const fetchCommunityTotals = async (): Promise<Record<string, AnonymousMe
 };
 
 /**
- * Generate fresh community insights via Gemini AI.
- *
- * DISABLED: The previous implementation called the Gemini REST API directly
- * from the client using the Firebase API key, which exposes the key to anyone
- * who inspects the bundle. Move this to a Firebase Cloud Function or use
- * Firebase AI Logic (server-side) before re-enabling.
- *
- * TODO: Implement via Firebase Cloud Function:
- *   exports.generateCommunityInsights = onCall(async (data) => { ... });
+ * Fetch the daily AI-generated community insights from the global state document.
+ * This document is updated every 24 hours by a Firebase Cloud Function.
  */
-export const generateGeminiCommunityInsights = async (
-  _metrics: Record<string, any>
-): Promise<CommunityInsightItem[] | null> => {
-  // Disabled — returns null so the UI falls back to DEFAULT_COMMUNITY_INSIGHTS
-  return null;
+export const fetchGlobalCommunityInsights = async (): Promise<CommunityInsightItem[] | null> => {
+  try {
+    // We use getDocs to get the collection and find the id since getDoc isn't imported
+    const querySnapshot = await getDocs(collection(firestoreDb, 'global_state'));
+    let insights: CommunityInsightItem[] | null = null;
+    
+    querySnapshot.forEach((docSnap: any) => {
+      if (docSnap.id === 'community_insights') {
+        const data = docSnap.data();
+        if (data && data.insights) {
+          insights = data.insights as CommunityInsightItem[];
+        }
+      }
+    });
+
+    return insights;
+  } catch (err) {
+    console.warn('Failed to fetch global community insights:', err);
+    return null;
+  }
 };

@@ -10,7 +10,7 @@ import {
   DEFAULT_COMMUNITY_INSIGHTS,
   CommunityInsightItem,
 } from '../../db/insightsEngine';
-import { fetchCommunityTotals, generateGeminiCommunityInsights } from '../../db/communityTelemetry';
+import { fetchGlobalCommunityInsights } from '../../db/communityTelemetry';
 import {
   Sparkles,
   TrendingUp,
@@ -44,7 +44,15 @@ export const InsightsView: React.FC = () => {
   const [communityInsights, setCommunityInsights] = useState<CommunityInsightItem[]>(
     DEFAULT_COMMUNITY_INSIGHTS
   );
-  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  React.useEffect(() => {
+    if (!settings.telemetry_opt_in) return;
+    fetchGlobalCommunityInsights().then((insights) => {
+      if (insights && insights.length > 0) {
+        setCommunityInsights(insights);
+      }
+    });
+  }, [settings.telemetry_opt_in]);
 
   // Daily Rotating Featured Discovery Card
   const featuredInsight = useMemo(
@@ -102,23 +110,7 @@ export const InsightsView: React.FC = () => {
       .sort((a, b) => b.count - a.count);
   }, [entries, categories]);
 
-  // Handle Refreshing Community Discoveries
-  const handleRefreshCommunity = async () => {
-    setIsRefreshing(true);
-    try {
-      const totals = await fetchCommunityTotals();
-      const aiGenerated = await generateGeminiCommunityInsights(totals);
-      if (aiGenerated && aiGenerated.length > 0) {
-        setCommunityInsights(aiGenerated);
-      } else {
-        setCommunityInsights([...DEFAULT_COMMUNITY_INSIGHTS].reverse());
-      }
-    } catch {
-      setCommunityInsights([...DEFAULT_COMMUNITY_INSIGHTS].reverse());
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+  // UI Component removed the manual handleRefreshCommunity as it is now an automated backend cron job
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-8">
@@ -175,17 +167,7 @@ export const InsightsView: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {settings.telemetry_opt_in && (
-              <button
-                type="button"
-                onClick={handleRefreshCommunity}
-                disabled={isRefreshing}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-xs font-bold hover:bg-sky-100 dark:hover:bg-sky-900/80 transition-all tap-target"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
-            )}
+            {/* Refresh button removed for automated global pipeline */}
             <span className={`px-3 py-1 rounded-full text-xs font-bold ${
               settings.telemetry_opt_in
                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
