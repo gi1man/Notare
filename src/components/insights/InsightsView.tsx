@@ -22,7 +22,6 @@ import {
   PieChart,
   Telescope,
   Globe,
-  RefreshCw,
   Bot,
   Lock,
   Settings,
