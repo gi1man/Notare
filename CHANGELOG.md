@@ -8,6 +8,8 @@ All notable changes to Notare are documented in this file.
 - **Share Card** — canvas-rendered branded goal summary card (1080×1350) with progress rings, goal bars, and Notare branding; shares via Web Share API on mobile, downloads PNG on desktop
 - **Sign Out** — `signOutUser()` function and Sign Out button in Settings
 - **Adaptive Account card** — Settings account section now shows different UI for signed-in vs anonymous users: signed-in users see their email, change password, and sign out; anonymous users see the registration/sign-in form
+- **Long-Term Trends Engine** — Replaced activity correlations in Insights tab with dynamic trends (Monthly Growth, Consistency Streaks, Peak Performance Days)
+- **Automated Community Insights** — Replaced client-side Gemini call with a daily scheduled Firebase Cloud Function that aggregates global data and saves secure AI insights to Firestore.
 
 ### Changed
 - **Sync indicator simplified** — replaced 4 icons (spinner, check, wifi-off, cloud) with a single Cloud icon in 3 colors: green (online), blue pulsing (syncing), gray (offline)

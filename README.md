@@ -21,7 +21,7 @@ A frictionless, offline-first PWA for tracking daily habits, wellness activities
 |-------|-----------|
 | UI | React 18, TypeScript, Tailwind CSS |
 | Local DB | Dexie.js (IndexedDB) |
-| Cloud | Firebase Auth, Firestore, Hosting |
+| Cloud | Firebase Auth, Firestore, Cloud Functions, Hosting |
 | Build | Vite 6, GitHub Actions CI/CD |
 | PWA | Custom service worker (network-first) |
 
@@ -86,8 +86,10 @@ See [src/db/index.ts](src/db/index.ts) for the migration guide.
 
 1. Create a Firebase project with Auth (Email/Password + Anonymous) and Firestore
 2. Copy your config to `src/db/firebaseConfig.ts`
-3. Deploy security rules: `firebase deploy --only firestore:rules`
-4. Deploy hosting: `firebase deploy --only hosting`
+3. Set your Gemini API key: `npx firebase-tools@latest functions:secrets:set GEMINI_API_KEY`
+4. Deploy security rules: `npx firebase-tools@latest deploy --only firestore:rules`
+5. Deploy backend functions: `npx firebase-tools@latest deploy --only functions`
+6. Deploy hosting: `npx firebase-tools@latest deploy --only hosting`
 
 ## Security
 
