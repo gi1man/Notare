@@ -153,7 +153,7 @@ export const GoalEditorModal: React.FC<GoalEditorModalProps> = ({ subcategory, o
           {/* Target Value & Unit */}
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-              Target Value ({targetType === 'time' ? 'Minutes' : targetType === 'count' ? 'Times' : 'Completion'})
+              Target Value ({subcategory.value_schema?.unit ? subcategory.value_schema.unit.charAt(0).toUpperCase() + subcategory.value_schema.unit.slice(1) : (targetType === 'time' ? 'Minutes' : targetType === 'count' ? 'Times' : 'Completion')})
             </label>
             <div className="flex items-center gap-3">
               <input
