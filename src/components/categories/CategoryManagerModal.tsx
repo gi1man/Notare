@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { Category } from '../../types';
 import { IconRenderer } from '../common/IconRenderer';
-import { Folder, Trash2, ArrowRightLeft, Pin, X, Target } from 'lucide-react';
+import { Folder, Trash2, ArrowRightLeft, Pin, X, Pencil } from 'lucide-react';
 import { GoalEditorModal } from '../goals/GoalEditorModal';
 
 interface CategoryManagerModalProps {
@@ -153,16 +153,6 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({ onCl
                         </div>
 
                         <div className="flex items-center gap-1">
-                          {/* Edit Goal Button */}
-                          <button
-                            onClick={() => setEditingGoalSub(sub)}
-                            className="px-2.5 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 rounded-md hover:bg-emerald-100 flex items-center gap-1 tap-target"
-                            title="Edit goal targets"
-                          >
-                            <Target className="w-3.5 h-3.5" />
-                            Edit
-                          </button>
-
                           {/* Move Button */}
                           <button
                             onClick={() => {
@@ -183,6 +173,15 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({ onCl
                             title="Delete Goal"
                           >
                             <Trash2 className="w-4 h-4" />
+                          </button>
+
+                          {/* Edit Goal Button */}
+                          <button
+                            onClick={() => setEditingGoalSub(sub)}
+                            className="p-1.5 text-slate-400 hover:text-sky-600 transition-colors tap-target"
+                            title="Edit goal targets"
+                          >
+                            <Pencil className="w-4 h-4" />
                           </button>
                         </div>
                       </div>

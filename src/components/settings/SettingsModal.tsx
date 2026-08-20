@@ -508,20 +508,20 @@ export const SettingsModal: React.FC = () => {
         </div>
       </div>
 
-      {/* Category & Item Management Section */}
+      {/* Category & Goal Management Section */}
       <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
         <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <Folder className="w-5 h-5 text-sky-600 dark:text-sky-400" /> Category & Item Management
+          <Folder className="w-5 h-5 text-sky-600 dark:text-sky-400" /> Category & Goal Management
         </h3>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Delete categories, move items between categories, or pin your favorites.
+          Delete categories, move goals between categories, or pin your favorites.
         </p>
 
         <button
           onClick={() => setShowCatManager(true)}
           className="w-full py-3.5 px-4 bg-sky-100 hover:bg-sky-200 dark:bg-sky-950/60 dark:hover:bg-sky-900 text-sky-800 dark:text-sky-300 font-bold rounded-xl text-sm transition-all tap-target flex items-center justify-center gap-2"
         >
-          <Folder className="w-4 h-4" /> Manage Categories & Items
+          <Folder className="w-4 h-4" /> Manage Categories & Goals
         </button>
       </div>
 
