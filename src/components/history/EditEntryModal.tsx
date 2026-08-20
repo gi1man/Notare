@@ -21,6 +21,7 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
 
   // Initialize state from existing entry values
   const [noteText, setNoteText] = useState<string>(entry.note_text || '');
+  const [transcriptText, setTranscriptText] = useState<string>(entry.transcript || '');
   const [numValue, setNumValue] = useState<string>(
     typeof entry.value === 'number' ? String(entry.value) : ''
   );
@@ -69,6 +70,7 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
       occurred_at: new Date(dateTimeStr).toISOString(),
       value: updatedValue,
       note_text: noteText.trim() || undefined,
+      transcript: transcriptText.trim() || undefined,
       updated_at: new Date().toISOString(),
     };
 
@@ -192,6 +194,23 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
               className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium"
             />
           </div>
+
+          {/* Transcript Text */}
+          {entry.transcript !== undefined && (
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                Raw Voice Transcript
+                <span className="text-xs font-normal text-slate-500">Auto-generated</span>
+              </label>
+              <textarea
+                rows={2}
+                value={transcriptText}
+                onChange={(e) => setTranscriptText(e.target.value)}
+                className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 font-medium text-sm italic"
+                placeholder="What was actually spoken..."
+              />
+            </div>
+          )}
 
           <div className="flex gap-3 pt-3">
             <button
