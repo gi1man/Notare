@@ -11,7 +11,10 @@ interface GoalEditorModalProps {
 
 export const GoalEditorModal: React.FC<GoalEditorModalProps> = ({ subcategory, onClose }) => {
   const existingGoal = useLiveQuery(
-    () => db.goals.where('subcategory_id').equals(subcategory.id).first(),
+    async () => {
+      const goals = await db.goals.where('subcategory_id').equals(subcategory.id).toArray();
+      return goals.find(g => !g.deleted_at);
+    },
     [subcategory.id]
   );
 
@@ -60,7 +63,10 @@ export const GoalEditorModal: React.FC<GoalEditorModalProps> = ({ subcategory, o
 
   const handleDeleteGoal = async () => {
     if (existingGoal) {
-      await db.goals.delete(existingGoal.id);
+      await db.goals.update(existingGoal.id, {
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
     }
     onClose();
   };

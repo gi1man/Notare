@@ -72,8 +72,15 @@ export const HistoryList: React.FC = () => {
     const parentCat = subcat ? categoryMap.get(subcat.parent_id || '') : null;
 
     // Delete from local DB and cloud
-    await db.entries.delete(entry.id);
-    await deleteEntryFromCloud(entry.id);
+    await db.entries.update(entry.id, {
+      deleted_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+    try {
+      await deleteEntryFromCloud(entry.id);
+    } catch {
+      // Ignored, delta sync handles offline failure
+    }
 
     // Trigger Undo toast
     triggerUndoToast(

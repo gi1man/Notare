@@ -15,6 +15,7 @@ import {
   resetPasswordByEmail,
   getCurrentUser,
   signOutUser,
+  reconcileSync,
 } from '../../db/firestoreSync';
 import {
   Settings,
@@ -55,6 +56,25 @@ export const SettingsModal: React.FC = () => {
     message: '',
   });
   const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
+  const [isForceSyncing, setIsForceSyncing] = useState(false);
+
+  const handleForceSync = async () => {
+    const user = getCurrentUser();
+    if (!user) {
+      setRestoreStatus({ type: 'error', message: 'You must be signed in to force sync.' });
+      return;
+    }
+    setIsForceSyncing(true);
+    setRestoreStatus({ type: null, message: '' });
+    try {
+      await reconcileSync(user.uid, true);
+      setRestoreStatus({ type: 'success', message: 'Force full sync completed successfully.' });
+    } catch (err: any) {
+      setRestoreStatus({ type: 'error', message: err.message || 'Force sync failed.' });
+    } finally {
+      setIsForceSyncing(false);
+    }
+  };
 
   const handleRegisterAccount = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -531,13 +551,23 @@ export const SettingsModal: React.FC = () => {
         </div>
 
         {/* Collapsible Restore Section */}
-        <button
-          onClick={() => setShowRestore(!showRestore)}
-          className="w-full py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center gap-1 transition-colors"
-        >
-          Restore from backup file
-          {showRestore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-        </button>
+        <div className="flex gap-2 w-full mt-2">
+          <button
+            onClick={() => setShowRestore(!showRestore)}
+            className="flex-1 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center gap-1 transition-colors"
+          >
+            Restore from backup
+            {showRestore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+          <button
+            onClick={handleForceSync}
+            disabled={isForceSyncing}
+            className="flex-1 py-2 text-xs font-semibold text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300 flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 ${isForceSyncing ? 'animate-spin' : ''}`} />
+            {isForceSyncing ? 'Syncing...' : 'Force Full Sync'}
+          </button>
+        </div>
 
         {showRestore && (
           <div className="space-y-3 pt-1">

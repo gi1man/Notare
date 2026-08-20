@@ -11,7 +11,7 @@ import {
   linkWithCredential,
   signOut,
 } from 'firebase/auth';
-import { doc, setDoc, getDocs, collection, deleteDoc, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, deleteDoc, writeBatch, query, where } from 'firebase/firestore';
 import { db } from './index';
 import { Category, Goal, Entry, MetaSettings } from '../types';
 
@@ -70,13 +70,27 @@ export const initFirebaseAuthAndSync = (onUserChanged?: (user: any) => void) => 
 
 // Push all local data up, then pull cloud data down
 // merge:true ensures new local entries are created in cloud without overwriting newer cloud data
-const reconcileSync = async (userId: string) => {
+const reconcileSync = async (userId: string, forceFullSync = false) => {
   if (isSyncing) return;
   isSyncing = true;
   setSyncStatus('syncing');
   try {
-    await pushAllLocalDataToCloud(userId);
-    await pullCloudDataToLocal(userId);
+    const lastSyncTime = await getOrComputeLastSyncTime(forceFullSync);
+    const newSyncTime = new Date().toISOString(); // Capture exact time *before* sync starts to avoid dropping items updated during sync
+
+    await pushAllLocalDataToCloud(userId, lastSyncTime);
+    await pullCloudDataToLocal(userId, lastSyncTime);
+
+    // Update last_sync_time
+    const settingsItem = await db.meta.get('settings');
+    await db.meta.put({
+      key: 'settings',
+      value: {
+        ...(settingsItem?.value || {}),
+        last_sync_time: newSyncTime
+      }
+    });
+
     setSyncStatus('synced');
   } catch (err) {
     console.warn('Sync reconciliation deferred:', err);
@@ -84,6 +98,30 @@ const reconcileSync = async (userId: string) => {
   } finally {
     isSyncing = false;
   }
+};
+
+export const getCurrentUser = () => currentUser;
+
+export const getOrComputeLastSyncTime = async (forceFullSync = false): Promise<string> => {
+  if (forceFullSync) return "1970-01-01T00:00:00.000Z";
+  
+  const settingsItem = await db.meta.get('settings');
+  if (settingsItem?.value?.last_sync_time) {
+    return settingsItem.value.last_sync_time;
+  }
+  
+  // Missing sync time! Fall back to finding the absolute max updated_at across all local tables
+  let maxTime = "1970-01-01T00:00:00.000Z";
+  
+  const lastCat = await db.categories.orderBy('updated_at').last();
+  const lastGoal = await db.goals.orderBy('updated_at').last();
+  const lastEntry = await db.entries.orderBy('updated_at').last();
+  
+  if (lastCat && lastCat.updated_at > maxTime) maxTime = lastCat.updated_at;
+  if (lastGoal && lastGoal.updated_at > maxTime) maxTime = lastGoal.updated_at;
+  if (lastEntry && lastEntry.updated_at > maxTime) maxTime = lastEntry.updated_at;
+  
+  return maxTime;
 };
 
 export const getCurrentUser = () => currentUser;
@@ -155,11 +193,13 @@ export const signOutUser = async () => {
   currentUser = null;
 };
 
-// Push all local Dexie items to Cloud using batched writes
-export const pushAllLocalDataToCloud = async (userId: string) => {
-  const categories = await db.categories.toArray();
-  const goals = await db.goals.toArray();
-  const entries = await db.entries.toArray();
+// Push delta local Dexie items to Cloud using batched writes
+export const pushAllLocalDataToCloud = async (userId: string, lastSyncTime: string = "1970-01-01T00:00:00.000Z") => {
+  const categories = await db.categories.where('updated_at').above(lastSyncTime).toArray();
+  const goals = await db.goals.where('updated_at').above(lastSyncTime).toArray();
+  const entries = await db.entries.where('updated_at').above(lastSyncTime).toArray();
+  
+  // Settings sync logic: since it's a single doc and not queried via index easily, push on full sync
   const settingsItem = await db.meta.get('settings');
 
   // Collect all write operations
@@ -183,12 +223,15 @@ export const pushAllLocalDataToCloud = async (userId: string) => {
       data: JSON.parse(JSON.stringify(entry)),
     });
   }
-  if (settingsItem?.value) {
+  
+  if (settingsItem?.value && lastSyncTime === "1970-01-01T00:00:00.000Z") {
     ops.push({
       ref: doc(firestoreDb, 'users', userId, 'settings', 'settings'),
       data: JSON.parse(JSON.stringify(settingsItem.value)),
     });
   }
+
+  if (ops.length === 0) return;
 
   // Commit in batches of 450 (Firestore limit is 500 per batch)
   const BATCH_SIZE = 450;
@@ -257,50 +300,59 @@ export const syncSettingsToCloud = async (settings: MetaSettings) => {
   }
 };
 
-// Pull all Cloud Data down to Dexie IndexedDB when syncing a restored user account
-export const pullCloudDataToLocal = async (userId: string) => {
-  if (isSyncing) return;
-  isSyncing = true;
+// Pull all Cloud Data down to Dexie IndexedDB when syncing a restored user account or delta sync
+export const pullCloudDataToLocal = async (userId: string, lastSyncTime: string = "1970-01-01T00:00:00.000Z") => {
   try {
+    const timeQuery = lastSyncTime === "1970-01-01T00:00:00.000Z" ? undefined : lastSyncTime;
+
     // 1. Categories
-    const catSnapshot = await getDocs(collection(firestoreDb, 'users', userId, 'categories'));
+    const catQuery = timeQuery 
+      ? query(collection(firestoreDb, 'users', userId, 'categories'), where('updated_at', '>', timeQuery))
+      : collection(firestoreDb, 'users', userId, 'categories');
+    const catSnapshot = await getDocs(catQuery);
     for (const docSnap of catSnapshot.docs) {
       const cat = docSnap.data() as Category;
       await db.categories.put(cat);
     }
 
     // 2. Goals
-    const goalSnapshot = await getDocs(collection(firestoreDb, 'users', userId, 'goals'));
+    const goalQuery = timeQuery 
+      ? query(collection(firestoreDb, 'users', userId, 'goals'), where('updated_at', '>', timeQuery))
+      : collection(firestoreDb, 'users', userId, 'goals');
+    const goalSnapshot = await getDocs(goalQuery);
     for (const docSnap of goalSnapshot.docs) {
       const goal = docSnap.data() as Goal;
       await db.goals.put(goal);
     }
 
     // 3. Entries
-    const entrySnapshot = await getDocs(collection(firestoreDb, 'users', userId, 'entries'));
+    const entryQuery = timeQuery 
+      ? query(collection(firestoreDb, 'users', userId, 'entries'), where('updated_at', '>', timeQuery))
+      : collection(firestoreDb, 'users', userId, 'entries');
+    const entrySnapshot = await getDocs(entryQuery);
     for (const docSnap of entrySnapshot.docs) {
       const entry = docSnap.data() as Entry;
       await db.entries.put(entry);
     }
 
-    // 4. Settings
-    const settingsSnapshot = await getDocs(collection(firestoreDb, 'users', userId, 'settings'));
-    for (const docSnap of settingsSnapshot.docs) {
-      if (docSnap.id === 'settings') {
-        const settingsData = docSnap.data() as MetaSettings;
-        await db.meta.put({
-          key: 'settings',
-          value: {
-            ...settingsData,
-            onboarding_completed: true,
-            is_demo_mode: false,
-          },
-        });
+    // 4. Settings (full pull only)
+    if (!timeQuery) {
+      const settingsSnapshot = await getDocs(collection(firestoreDb, 'users', userId, 'settings'));
+      for (const docSnap of settingsSnapshot.docs) {
+        if (docSnap.id === 'settings') {
+          const settingsData = docSnap.data() as MetaSettings;
+          await db.meta.put({
+            key: 'settings',
+            value: {
+              ...settingsData,
+              onboarding_completed: true,
+              is_demo_mode: false,
+            },
+          });
+        }
       }
     }
   } catch (err) {
     console.warn('Cloud data pull deferred:', err);
-  } finally {
-    isSyncing = false;
   }
 };

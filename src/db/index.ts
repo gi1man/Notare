@@ -39,6 +39,14 @@ export class NotareDB extends Dexie {
       goals: 'id, subcategory_id, direction, target_type, frequency, updated_at, is_demo',
       meta: 'key',
     });
+
+    // v3: Add deleted_at index for goals
+    this.version(3).stores({
+      categories: 'id, parent_id, name, pinned, sort_order, updated_at, deleted_at, is_demo',
+      entries: 'id, subcategory_id, occurred_at, transcript_status, updated_at, deleted_at, is_demo',
+      goals: 'id, subcategory_id, direction, target_type, frequency, updated_at, deleted_at, is_demo',
+      meta: 'key',
+    });
   }
 
   async initializeDefaults() {

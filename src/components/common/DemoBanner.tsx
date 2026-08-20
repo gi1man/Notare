@@ -18,7 +18,7 @@ export const DemoBanner: React.FC = () => {
       await clearDemoData();
       
       // Check if user has any real data left
-      const remainingGoals = await db.goals.filter(g => !g.is_demo).count();
+      const remainingGoals = await db.goals.filter(g => !g.is_demo && !g.deleted_at).count();
       const remainingEntries = await db.entries.filter(e => !e.is_demo).count();
       
       if (remainingGoals > 0 || remainingEntries > 0) {

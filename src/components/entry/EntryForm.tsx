@@ -43,10 +43,11 @@ export const EntryForm: React.FC = () => {
   useEffect(() => {
     if (!selectedSubcategory) return;
     const fetchGoalTarget = async () => {
-      const existingGoal = await db.goals
+      const existingGoals = await db.goals
         .where('subcategory_id')
         .equals(selectedSubcategory.id)
-        .first();
+        .toArray();
+      const existingGoal = existingGoals.find(g => !g.deleted_at);
       const unit = selectedSubcategory.value_schema?.unit || 'times';
       
       if (existingGoal && existingGoal.target_value) {

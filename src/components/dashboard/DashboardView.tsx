@@ -23,7 +23,7 @@ export const DashboardView: React.FC = () => {
     [settings.is_demo_mode]
   );
   const goals = useLiveQuery(
-    () => db.goals.filter((g) => (settings.is_demo_mode || !g.is_demo)).toArray(),
+    () => db.goals.filter((g) => !g.deleted_at && (settings.is_demo_mode || !g.is_demo)).toArray(),
     [settings.is_demo_mode]
   );
 

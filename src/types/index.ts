@@ -55,6 +55,7 @@ export interface Goal {
   target_value: number;
   frequency: GoalFrequency;
   updated_at: string;
+  deleted_at?: string | null;
   is_demo?: boolean;
 }
 
@@ -73,6 +74,7 @@ export interface MetaSettings {
   mic_help_do_not_show: boolean;
   ios_a2hs_dismissed: boolean;
   last_cloud_backup_at?: string;
+  last_sync_time?: string;
   is_demo_mode?: boolean;
 }
 

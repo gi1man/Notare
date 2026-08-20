@@ -159,9 +159,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!undoToast) return;
     if (undoToast.timeoutId) clearTimeout(undoToast.timeoutId);
 
-    // Delete entry from local DB
-    await db.entries.delete(undoToast.id);
-    // Best-effort cloud delete (may fail offline)
+    // Delete entry from local DB by setting deleted_at
+    await db.entries.update(undoToast.id, { 
+      deleted_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+    // Best-effort cloud delete (may fail offline, delta sync will catch it)
     try {
       await deleteEntryFromCloud(undoToast.id);
     } catch {
