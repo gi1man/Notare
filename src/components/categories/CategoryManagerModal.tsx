@@ -3,7 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { Category } from '../../types';
 import { IconRenderer } from '../common/IconRenderer';
-import { Folder, Trash2, ArrowRightLeft, Pin, X } from 'lucide-react';
+import { Folder, Trash2, ArrowRightLeft, Pin, X, Target } from 'lucide-react';
+import { GoalEditorModal } from '../goals/GoalEditorModal';
 
 interface CategoryManagerModalProps {
   onClose: () => void;
@@ -13,6 +14,7 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({ onCl
   const categories = useLiveQuery(() => db.categories.filter((c) => !c.deleted_at).toArray());
 
   const [editingSub, setEditingSub] = useState<Category | null>(null);
+  const [editingGoalSub, setEditingGoalSub] = useState<Category | null>(null);
   const [targetParentId, setTargetParentId] = useState<string>('');
 
   const topCategories = categories?.filter((c) => c.parent_id === null) || [];
@@ -44,9 +46,9 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({ onCl
     }
   };
 
-  // Delete Item / Subcategory (Soft Delete)
+  // Delete Goal / Subcategory (Soft Delete)
   const handleDeleteSubcategory = async (sub: Category) => {
-    if (confirm(`Are you sure you want to delete item "${sub.name}"? Past entry logs will be preserved.`)) {
+    if (confirm(`Are you sure you want to delete goal "${sub.name}"? Past entry logs will be preserved.`)) {
       await db.categories.update(sub.id, {
         deleted_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -54,7 +56,7 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({ onCl
     }
   };
 
-  // Move Item to Different Parent Category
+  // Move Goal to Different Parent Category
   const handleMoveSubcategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingSub || !targetParentId) return;
@@ -69,16 +71,16 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({ onCl
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-xl w-full shadow-2xl border border-slate-200 dark:border-slate-700 space-y-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-2xl w-full shadow-2xl border border-slate-200 dark:border-slate-700 space-y-6 max-h-[90vh] overflow-y-auto">
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-4">
           <div>
             <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Folder className="w-6 h-6 text-sky-600 dark:text-sky-400" />
-              Manage Categories & Items
+              Manage Categories & Goals
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Re-order, move items, pin favorites, or delete categories
+              Re-order, move goals, pin favorites, or delete categories
             </p>
           </div>
 
@@ -137,7 +139,7 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({ onCl
 
                 {/* Subcategories List */}
                 {subs.length === 0 ? (
-                  <div className="text-xs text-slate-400 italic pl-8">No sub-items in this category</div>
+                  <div className="text-xs text-slate-400 italic pl-8">No goals in this category</div>
                 ) : (
                   <div className="pl-6 space-y-2 border-l-2 border-slate-200 dark:border-slate-800">
                     {subs.map((sub) => (
@@ -151,6 +153,16 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({ onCl
                         </div>
 
                         <div className="flex items-center gap-1">
+                          {/* Edit Goal Button */}
+                          <button
+                            onClick={() => setEditingGoalSub(sub)}
+                            className="px-2.5 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 rounded-md hover:bg-emerald-100 flex items-center gap-1 tap-target"
+                            title="Edit goal targets"
+                          >
+                            <Target className="w-3.5 h-3.5" />
+                            Edit
+                          </button>
+
                           {/* Move Button */}
                           <button
                             onClick={() => {
@@ -168,7 +180,7 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({ onCl
                           <button
                             onClick={() => handleDeleteSubcategory(sub)}
                             className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors tap-target"
-                            title="Delete Item"
+                            title="Delete Goal"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -182,9 +194,9 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({ onCl
           })}
         </div>
 
-        {/* Move Item Modal */}
+        {/* Move Goal Modal */}
         {editingSub && (
-          <div className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
               <h4 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
                 <ArrowRightLeft className="w-5 h-5 text-sky-600" />
@@ -227,6 +239,14 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({ onCl
               </form>
             </div>
           </div>
+        )}
+
+        {/* Goal Editor Modal */}
+        {editingGoalSub && (
+          <GoalEditorModal
+            subcategory={editingGoalSub}
+            onClose={() => setEditingGoalSub(null)}
+          />
         )}
       </div>
     </div>
