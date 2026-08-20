@@ -70,7 +70,7 @@ export const initFirebaseAuthAndSync = (onUserChanged?: (user: any) => void) => 
 
 // Push all local data up, then pull cloud data down
 // merge:true ensures new local entries are created in cloud without overwriting newer cloud data
-const reconcileSync = async (userId: string, forceFullSync = false) => {
+export const reconcileSync = async (userId: string, forceFullSync = false) => {
   if (isSyncing) return;
   isSyncing = true;
   setSyncStatus('syncing');
@@ -123,8 +123,6 @@ export const getOrComputeLastSyncTime = async (forceFullSync = false): Promise<s
   
   return maxTime;
 };
-
-export const getCurrentUser = () => currentUser;
 
 // Register Cloud Account with Email & Custom Password
 // Attempts to upgrade anonymous account first to avoid orphan UIDs
