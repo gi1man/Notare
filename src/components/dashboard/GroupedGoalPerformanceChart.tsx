@@ -139,8 +139,13 @@ export const GroupedGoalPerformanceChart: React.FC<GroupedGoalPerformanceChartPr
       }));
     };
 
-    // Order requested by user: 1. Weekly -> 2. Monthly -> 3. Daily
+    // Order requested by user: 1. Daily -> 2. Weekly -> 3. Monthly
     const freqGroups: FrequencyGroup[] = [
+      {
+        frequency: 'daily',
+        label: 'Daily Goals',
+        categoryGroups: processGoalsForFrequency('daily', startOfTodayTime),
+      },
       {
         frequency: 'weekly',
         label: 'Weekly Goals',
@@ -152,11 +157,6 @@ export const GroupedGoalPerformanceChart: React.FC<GroupedGoalPerformanceChartPr
         label: 'Monthly Goals',
         caption: `Day ${dayOfMonth} of ${daysInMonth}`,
         categoryGroups: processGoalsForFrequency('monthly', startOfMonthTime),
-      },
-      {
-        frequency: 'daily',
-        label: 'Daily Goals',
-        categoryGroups: processGoalsForFrequency('daily', startOfTodayTime),
       },
     ].filter((fg) => fg.categoryGroups.length > 0);
 
