@@ -2,6 +2,22 @@
 
 All notable changes to Notare are documented in this file.
 
+## [2.3.0] — 2026-08-20
+
+### Added
+- **Goal Editing** — Added Edit Goal button directly to the Settings > Manage Categories & Goals menu, allowing instant updates to existing goals
+- **Voice Transcript Editing** — Added a "Raw Voice Transcript" field in the History Edit Modal for voice-generated entries, allowing users to manually correct AI transcriptions
+
+### Changed
+- **Delta Sync Architecture** — Firestore sync engine now uses a precise `last_sync_time` timestamp index for pulling changes, drastically reducing database read costs and bandwidth
+- **Settings Terminology** — Renamed "Manage Categories & Items" to "Manage Categories & Goals" for clearer intent
+- **Goal Unit Labels** — The Goal Editor Modal now dynamically extracts and capitalizes custom units (e.g. "Hours", "Pages") directly from the category schema instead of hard-coding defaults
+
+### Fixed
+- Fixed maskable Android app icon padding (PWA) to fill the circle correctly
+- Fixed an issue where the dashboard and editor failed to filter out soft-deleted goals
+
+
 ## [2.2.0] — 2026-08-15
 
 ### Added
